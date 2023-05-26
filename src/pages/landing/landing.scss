@@ -1,27 +1,70 @@
 @use "../../colors";
 
+body {
+  height: 100%;
+}
 
-// .landing-container {
-//   // display: flex;
-//   // justify-content: center;
-// }
+.landing-container {
+  display: flex;
+  // justify-content: center;
+  // align-items: center;
+  flex-direction: column;
+  min-height: 100vh;
+}
 
 
 .header-container {
   display: flex;
   justify-content: center;
   align-items: center;
-  margin: 10px 20px 10px 20px; // top right bottom left
+  margin: 40px 20px 10px 20px; // top right bottom left
+}
+
+.body-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-grow: 1;
+  // min-height: 100vh;
+
+  position: relative;
 }
 
 .typing-container {
   display: flex;
-  justify-content: center;
   flex-direction: column;
-  padding: 100px;
+  flex-basis: 640px;
+  padding: 20px;
+  background-color: colors.$typing-container-color;
+  border: none;
+  border-radius: 0.4rem;
 }
 
 .typing-display {
+}
+
+.typing-input {
+  margin-top: 20px;
+  line-height: inherit;
+  font-family: inherit;
+  background-color: colors.$accent-color;
+  color: inherit;
+  border-radius: 0.3rem;
+  border-color: colors.$accent-color;
+  border-style: solid;
+  padding: 5px 10px 5px 10px;
+  font-size: 1.2rem;
+    transition: all 0.2s;
+}
+
+.typing-input:focus, .typing-input:hover {
+    box-sizing: border-box;
+    // outline-color: colors.$font-color;
+    // border: 3px solid colors.$pink;
+    border-style: solid;
+    border-color: colors.$font-color;
+    outline: none;
+    transition: all 0.2s;
 }
 
 #logo {

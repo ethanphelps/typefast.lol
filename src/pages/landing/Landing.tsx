@@ -90,9 +90,11 @@ export const Landing: React.FC = (): React.ReactElement => {
     return (
         <div className="landing-container">
             <Header />
-            { wordsJson && 
-                <TypingArea words={randomizedWords}/>
-            }
+            <div className="body-container">
+                { wordsJson && 
+                    <TypingArea words={randomizedWords}/>
+                }
+            </div>
         </div>
     );
 };
