@@ -9,13 +9,22 @@
 
 .header-container {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
   margin: 10px 20px 10px 20px; // top right bottom left
 }
 
+.typing-container {
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+  padding: 100px;
+}
+
+.typing-display {
+}
+
 #logo {
-  font-style: italic;
   font-weight: 800;
   font-size: 32px;
 }

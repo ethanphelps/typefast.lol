@@ -36,15 +36,63 @@ const Header = ({ }): React.ReactElement => {
     );
 };
 
+const wordsToType = [""];
 
+interface TypingAreaProps {
+    words: string
+}
+
+
+const TypingArea = ({ words }: TypingAreaProps): React.ReactElement => {
+    return (
+        <div className="typing-container">
+            <article className="typing-display">
+                {words}
+            </article>
+            <input type="text" className="typing-input"></input>
+        </div>
+    );
+}
+
+const getRandomizedWords = (wordList: string[]): string => {
+    const length = 50;
+    let result = "";
+    for(let i = 0; i < length; i++) {
+        const index = Math.floor(Math.random() * wordList.length);
+        result += wordList[index] + " ";
+    }
+    console.log(result);
+    return result;
+}
+
+interface WordsJson {
+   [key: string]: string[]
+}
 export const Landing: React.FC = (): React.ReactElement => {
+    const [wordsJson, setWordsJson] = useState<WordsJson | null>(null);
+    const [randomizedWords, setRandomizedWords] = useState<string | null>(null);
 
     useEffect(() => {
+        const getWords = async () => {
+            try {
+                const wordsFile = await fetch('basic-words.json');
+                const words = await wordsFile.json();
+                setRandomizedWords(getRandomizedWords(words['english-basic']));
+                setWordsJson(words);
+            } catch(e) {
+                console.log(`Error getting words from json file! ${e}`);
+            }
+        };
+
+        getWords();
     }, []);
 
     return (
         <div className="landing-container">
             <Header />
+            { wordsJson && 
+                <TypingArea words={randomizedWords}/>
+            }
         </div>
     );
 };
