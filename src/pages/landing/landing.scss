@@ -1,0 +1,38 @@
+@use "../../colors";
+
+
+// .landing-container {
+//   // display: flex;
+//   // justify-content: center;
+// }
+
+
+.header-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 10px 20px 10px 20px; // top right bottom left
+}
+
+#logo {
+  font-style: italic;
+  font-weight: 800;
+  font-size: 32px;
+}
+
+.header-buttons {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+
+  svg {
+    stroke: colors.$icon-blue;
+    transition: stroke 0.7s;
+  }
+
+  svg:hover {
+    stroke: darken(colors.$icon-blue, 18%);
+    transition: stroke 0.4s;
+    cursor: pointer;
+  }
+}
