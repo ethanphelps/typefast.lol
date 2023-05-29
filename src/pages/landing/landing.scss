@@ -6,8 +6,6 @@ body {
 
 .landing-container {
   display: flex;
-  // justify-content: center;
-  // align-items: center;
   flex-direction: column;
   min-height: 100vh;
 }
@@ -43,8 +41,13 @@ body {
 .typing-display {
 }
 
-.typing-input {
+.input-row {
+  display: flex;
   margin-top: 20px;
+  column-gap: 10px;
+}
+
+.typing-input {
   line-height: inherit;
   font-family: inherit;
   background-color: colors.$accent-color;
@@ -54,13 +57,27 @@ body {
   border-style: solid;
   padding: 5px 10px 5px 10px;
   font-size: 1.2rem;
-    transition: all 0.2s;
+  transition: all 0.2s;
+  flex-grow: 1;
+}
+
+.retry-button {
+  flex-grow: 0;
+  flex-basis: 70px;
+  font: inherit;
+  background-color: colors.$accent-color;
+  color: inherit;
+  border-radius: 0.3rem;
+  border-color: colors.$accent-color;
+  border-style: solid;
+  padding: 5px 10px 5px 10px;
+  font-size: 1.2rem;
+  transition: all 0.2s;
+  cursor: pointer;
 }
 
 .typing-input:focus, .typing-input:hover {
     box-sizing: border-box;
-    // outline-color: colors.$font-color;
-    // border: 3px solid colors.$pink;
     border-style: solid;
     border-color: colors.$font-color;
     outline: none;
@@ -72,19 +89,14 @@ body {
   font-size: 32px;
 }
 
-.header-buttons {
-  display: flex;
-  gap: 10px;
-  margin-top: 8px;
+.highlighted {
+  background: colors.$accent-color;
+}
 
-  svg {
-    stroke: colors.$icon-blue;
-    transition: stroke 0.7s;
-  }
+.correct {
 
-  svg:hover {
-    stroke: darken(colors.$icon-blue, 18%);
-    transition: stroke 0.4s;
-    cursor: pointer;
-  }
+}
+
+.incorrect {
+
 }

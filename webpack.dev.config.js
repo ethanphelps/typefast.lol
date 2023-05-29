@@ -27,7 +27,7 @@ module.exports = {
   plugins: [
     new HtmlWebpackPlugin({
       template: "./src/index.html",
-      favicon: "./public/favicon.ico"
+      favicon: "./public/sparkles.svg"
     }),
     // pass environment variables into build
     new DefinePlugin({
