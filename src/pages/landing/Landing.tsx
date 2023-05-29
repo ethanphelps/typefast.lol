@@ -1,10 +1,7 @@
 import React, { useEffect, useState, Suspense, ReactHTML } from 'react';
 import './landing.scss';
-import { Add, Search } from '../../inline-svgs';
 import Link from '../../components/Link';
-import { Recipe } from '../../models/models';
 import { getConfig } from '../../config';
-import { suspenseWrapper } from '../../utils/suspenseWrapper';
 
 const config = getConfig();
 
@@ -47,8 +44,8 @@ const shouldMoveToNextWord = (typedWord: string, keyPressed: string): boolean =>
 const TypingArea = ({ words, setRandomizedWords}: TypingAreaProps): React.ReactElement => {
     const [currentWord, setCurrentWord] = useState(0);
     const [typedWord, setTypedWord] = useState("");
-    // const [wordComponents, setWordComponents] = useState<React.ReactElement[]>(getWordComponentList(words));
-    const [wordComponents, setWordComponents] = useState(getWordComponentList(words));
+    const [wordComponents, setWordComponents] = useState<WordComponentData[]>(getWordComponentList(words));
+    const [inputClass, setInputClass] = useState<string>("typing-input");
     const resetStates = () => {
         setCurrentWord(0);
         setTypedWord("");
@@ -75,13 +72,16 @@ const TypingArea = ({ words, setRandomizedWords}: TypingAreaProps): React.ReactE
                 <input 
                     type="text" 
                     value={typedWord}
-                    className="typing-input"
+                    className={inputClass}
                     onChange={(event: React.ChangeEvent) => {
                         const inputValue = (event.target as HTMLInputElement).value;
-                        // console.log('onChange event.target.value: ', (event.target as HTMLInputElement).value);
                         setTypedWord(inputValue);
                         const keyPressed = inputValue[inputValue.length - 1];
                         console.log('character typed: ', inputValue[inputValue.length - 1]);
+                        const newInputClass = wordIsCorrect(words[currentWord], inputValue) ? "typing-input" : "typing-input incorrect-input";
+                        wordIsCorrect(words[currentWord], inputValue) ? console.log(`word is correct so far: ${inputValue}`) : console.log(`word is not correct so far: ${inputValue}`);
+                        setInputClass(newInputClass);
+
                         // check if word correct incrementally
                         if(shouldMoveToNextWord(typedWord, keyPressed)) {
                             console.log('next word! word typed was: ', typedWord);
@@ -98,29 +98,11 @@ const TypingArea = ({ words, setRandomizedWords}: TypingAreaProps): React.ReactE
                                 }
                                 return wordComponent;
                             });
-                            // newWordComponents[currentWord] = (
-                            //     <WordComponent 
-                            //         cssClass={newClassName} 
-                            //         word={wordComponents[currentWord].props.word} 
-                            //         key={currentWord}
-                            //     />
-                            // )
                             newWordComponents[currentWord] = {
                                 ...newWordComponents[currentWord],
                                 cssClass: newClassName
                             }
                             if(currentWord < wordComponents.length) {
-                                // newWordComponents[currentWord + 1] = (
-                                //     <WordComponent 
-                                //         cssClass="highlighted" 
-                                //         word={wordComponents[currentWord + 1].props.word} 
-                                //         key={currentWord + 1}
-                                //     />
-                                // )
-                                // newWordComponents[currentWord + 1] = {
-                                //     ...newWordComponents[currentWord + 1],
-                                //     cssClass: "highlighted"
-                                // }
                                 newWordComponents = [...newWordComponents].map((wordComponent, index) => {
                                     if(index === currentWord + 1) {
                                         return {...wordComponent, cssClass: "highlighted"};
@@ -131,6 +113,7 @@ const TypingArea = ({ words, setRandomizedWords}: TypingAreaProps): React.ReactE
                             }
                             setTypedWord("");
                             setWordComponents(newWordComponents);
+                            setInputClass("typing-input")
                             console.log(wordComponents);
                         }
                     }}
@@ -190,10 +173,9 @@ const getRandomizedWordsList = (wordList: string[]): string[] => {
 }
 
 const WordComponent = ({word, cssClass}: {word: string, cssClass: string}): React.ReactElement => {
-    const [className, setClassName] = useState(cssClass);
     return (
         <>
-            <span className={className}>{word}</span>
+            <span className={cssClass}>{word}</span>
             <span> </span>
         </>
     );

@@ -94,9 +94,19 @@ body {
 }
 
 .correct {
-
+  color: colors.$correct-green;
 }
 
 .incorrect {
+  color: colors.$incorrect-red;
+}
 
+.incorrect-input {
+  color: colors.$incorrect-red;
+  border-color: colors.$incorrect-red;
+}
+
+.incorrect-input:focus {
+  color: colors.$incorrect-red;
+  border-color: colors.$incorrect-red;
 }
