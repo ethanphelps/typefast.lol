@@ -30,22 +30,39 @@ const Header = ({ }): React.ReactElement => {
 };
 
 
-const wordsToType = [""];
 
 interface TypingAreaProps {
     words: string[];
     setRandomizedWords: React.Dispatch<React.SetStateAction<string[]>>;
+    setWpm: React.Dispatch<React.SetStateAction<number>>;
+    // setStartTime: React.Dispatch<React.SetStateAction<number>>;
+    // setEndTime: React.Dispatch<React.SetStateAction<number>>;
+    // setCorrectCharacters: React.Dispatch<React.SetStateAction<number>>;
+    // setIncorrectCharacters: React.Dispatch<React.SetStateAction<number>>;
 }
 
 const shouldMoveToNextWord = (typedWord: string, keyPressed: string): boolean => {
     return typedWord && keyPressed === ' ';
 }
 
-const TypingArea = ({ words, setRandomizedWords}: TypingAreaProps): React.ReactElement => {
+const TypingArea = ({ 
+    words, 
+    setRandomizedWords, 
+    setWpm
+    // setStartTime, 
+    // setEndTime, 
+    // setCorrectCharacters, 
+    // setIncorrectCharacters
+}: TypingAreaProps): React.ReactElement => {
     const [currentWord, setCurrentWord] = useState(0);
     const [typedWord, setTypedWord] = useState("");
     const [wordComponents, setWordComponents] = useState<WordComponentData[]>(getWordComponentList(words));
     const [inputClass, setInputClass] = useState<string>("typing-input");
+    const [typingStarted, setTypingStarted] = useState<boolean>(false);
+    const [correctCharacters, setCorrectCharacters] = useState<number>(0);
+    const [incorrectCharacters, setIncorrectCharacters] = useState<number>(0);
+    const [startTime, setStartTime] = useState<number | null>(null);
+    const [endTime, setEndTime] = useState<number | null>(null);
     const resetStates = () => {
         setCurrentWord(0);
         setTypedWord("");
@@ -54,6 +71,7 @@ const TypingArea = ({ words, setRandomizedWords}: TypingAreaProps): React.ReactE
             setRandomizedWords(newRandomizedWords);
             setWordComponents(getWordComponentList(newRandomizedWords));
         });
+        setTypingStarted(false);
     }
     return (
         <div className="typing-container">
@@ -74,47 +92,69 @@ const TypingArea = ({ words, setRandomizedWords}: TypingAreaProps): React.ReactE
                     value={typedWord}
                     className={inputClass}
                     onChange={(event: React.ChangeEvent) => {
+                        if(!typingStarted) {
+                            setStartTime(Date.now());
+                            setTypingStarted(true);
+                            console.log()
+                        }
                         const inputValue = (event.target as HTMLInputElement).value;
-                        setTypedWord(inputValue);
                         const keyPressed = inputValue[inputValue.length - 1];
-                        console.log('character typed: ', inputValue[inputValue.length - 1]);
-                        const newInputClass = wordIsCorrect(words[currentWord], inputValue) ? "typing-input" : "typing-input incorrect-input";
-                        wordIsCorrect(words[currentWord], inputValue) ? console.log(`word is correct so far: ${inputValue}`) : console.log(`word is not correct so far: ${inputValue}`);
-                        setInputClass(newInputClass);
+                        if(currentWord < words.length) {
+                            const newInputClass = wordIsCorrect(words[currentWord], inputValue) ? "typing-input" : "typing-input incorrect-input";
+                            setInputClass(newInputClass);
 
-                        // check if word correct incrementally
-                        if(shouldMoveToNextWord(typedWord, keyPressed)) {
-                            console.log('next word! word typed was: ', typedWord);
-                            if(typedWord.trim() === words[currentWord]) {
-                                console.log('word was typed correctly!');
+                            let characterChange = 0;
+                            if(keyPressed !== " ") {
+                                characterChange = inputValue.length < typedWord.length ? -1 : 1;
+                            }
+                            if(wordIsCorrect(words[currentWord], inputValue)) {
+                                setCorrectCharacters(correctCharacters + characterChange);
+                                console.log('correct characters typed: ', correctCharacters);
                             } else {
-                                console.log(`word was typed incorrectly! word should have been: ${words[currentWord]}. word typed: ${typedWord}`);
+                                setIncorrectCharacters(incorrectCharacters + characterChange)
+                                console.log('incorrect characters typed: ', incorrectCharacters);
                             }
-                            const newClassName = typedWord.trim() === words[currentWord] ? "correct" : "incorrect";
-                            // reset typedword state
-                            let newWordComponents = [...wordComponents].map((wordComponent, index) => {
-                                if(index === currentWord) {
-                                    return {...wordComponent, cssClass: newClassName};
+
+                            setTypedWord(inputValue);
+
+                            // check if word correct incrementally
+                            if(shouldMoveToNextWord(inputValue, keyPressed)) {
+                                console.log('next word! word typed was: ', typedWord);
+                                if(inputValue.trim() === words[currentWord]) {
+                                    console.log('word was typed correctly!');
+                                } else {
+                                    console.log(`word was typed incorrectly! word should have been: ${words[currentWord]}. word typed: ${typedWord}`);
                                 }
-                                return wordComponent;
-                            });
-                            newWordComponents[currentWord] = {
-                                ...newWordComponents[currentWord],
-                                cssClass: newClassName
-                            }
-                            if(currentWord < wordComponents.length) {
-                                newWordComponents = [...newWordComponents].map((wordComponent, index) => {
-                                    if(index === currentWord + 1) {
-                                        return {...wordComponent, cssClass: "highlighted"};
+                                const newClassName = inputValue.trim() === words[currentWord] ? "correct" : "incorrect";
+                                // reset typedword state
+                                let newWordComponents = [...wordComponents].map((wordComponent, index) => {
+                                    if(index === currentWord) {
+                                        return {...wordComponent, cssClass: newClassName};
                                     }
                                     return wordComponent;
-                                })
-                                setCurrentWord(currentWord + 1);
+                                });
+                                newWordComponents[currentWord] = {
+                                    ...newWordComponents[currentWord],
+                                    cssClass: newClassName
+                                }
+                                if(currentWord < wordComponents.length) {
+                                    newWordComponents = [...newWordComponents].map((wordComponent, index) => {
+                                        if(index === currentWord + 1) {
+                                            return {...wordComponent, cssClass: "highlighted"};
+                                        }
+                                        return wordComponent;
+                                    })
+                                    setCurrentWord(currentWord + 1);
+                                } else {
+                                //     setStartTime(null);
+                                    console.log('Total correct characters: ', getTotalCharacters(words))
+                                    setEndTime(Date.now());
+                                    setWpm(calculateWpm(startTime, endTime, correctCharacters, incorrectCharacters));
+                                }
+                                setTypedWord("");
+                                setWordComponents(newWordComponents);
+                                setInputClass("typing-input")
                             }
-                            setTypedWord("");
-                            setWordComponents(newWordComponents);
-                            setInputClass("typing-input")
-                            console.log(wordComponents);
                         }
                     }}
                 >
@@ -123,6 +163,10 @@ const TypingArea = ({ words, setRandomizedWords}: TypingAreaProps): React.ReactE
             </div>
         </div>
     );
+}
+
+const getTotalCharacters = (words: string[]): number => {
+    return words.reduce((sum: number, word: string) => sum + word.length, 0);
 }
 
 /**
@@ -162,7 +206,7 @@ const getRandomizedWordsString = (wordList: string[]): string => {
  * @param wordList a list of words to choose from for type tests
  */
 const getRandomizedWordsList = (wordList: string[]): string[] => {
-    const length = 50;
+    const length = 25;
     let result: string[] = [];
     for (let i = 0; i < length; i++) {
         const index = Math.floor(Math.random() * wordList.length);
@@ -211,12 +255,36 @@ interface WordsJson {
 }
 
 /**
+ * WPM = characters per min / 5
+ * @param startTime 
+ * @param endTime 
+ * @param wordCount 
+ * @returns 
+ */
+const calculateWpm = (startTime: number, endTime: number, correctCharacters: number, incorrectCharacters: number) => {
+    const seconds = (endTime - startTime) / 1000;
+    const wpm = (60 / seconds) * (correctCharacters - incorrectCharacters);
+    console.log(`Correct characters: ${correctCharacters}. Incorrect characters: ${incorrectCharacters}.`);
+    return endTime - startTime;
+}
+
+/**
  * should randomizedWords and wordsJson state live in TypingArea component since we only want that to rerender when
  * the words are reset?
  */
 export const Landing: React.FC = (): React.ReactElement => {
-    // const [randomizedWords, setRandomizedWords] = useState<string | null>(null);
     const [randomizedWords, setRandomizedWords] = useState<string[] | null>(null);
+    // const [startTime, setStartTime] = useState<number | null>(null);
+    // const [endTime, setEndTime] = useState<number | null>(null);
+    const [wpm, setWpm] = useState<number | null>(null);
+    // const [correctCharacters, setCorrectCharacters] = useState<number | null>(null);
+    // const [incorrectCharacters, setIncorrectCharacters] = useState<number | null>(null);
+
+    // if(endTime) {
+    //     setStartTime(null);
+    //     setEndTime(null);
+    //     setWpm(calculateWpm(startTime, endTime, correctCharacters, incorrectCharacters));
+    // }
 
     useEffect(() => {
         const getWords = async () => {
@@ -240,6 +308,11 @@ export const Landing: React.FC = (): React.ReactElement => {
                     <TypingArea
                         words={randomizedWords}
                         setRandomizedWords={setRandomizedWords}
+                        setWpm={setWpm}
+                        // setStartTime={setStartTime}
+                        // setEndTime={setEndTime}
+                        // setCorrectCharacters={setCorrectCharacters}
+                        // setIncorrectCharacters={setIncorrectCharacters}
                     />
                 }
             </div>
