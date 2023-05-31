@@ -71,7 +71,12 @@ const TypingArea = ({
             setRandomizedWords(newRandomizedWords);
             setWordComponents(getWordComponentList(newRandomizedWords));
         });
+        setInputClass("typing-input");
         setTypingStarted(false);
+        setCorrectCharacters(0);
+        setIncorrectCharacters(0);
+        setStartTime(null);
+        setEndTime(null);
     }
     return (
         <div className="typing-container">
@@ -95,7 +100,7 @@ const TypingArea = ({
                         if(!typingStarted) {
                             setStartTime(Date.now());
                             setTypingStarted(true);
-                            console.log()
+                            console.log(Date.now());
                         }
                         const inputValue = (event.target as HTMLInputElement).value;
                         const keyPressed = inputValue[inputValue.length - 1];
@@ -137,7 +142,7 @@ const TypingArea = ({
                                     ...newWordComponents[currentWord],
                                     cssClass: newClassName
                                 }
-                                if(currentWord < wordComponents.length) {
+                                if(currentWord < wordComponents.length - 1) {
                                     newWordComponents = [...newWordComponents].map((wordComponent, index) => {
                                         if(index === currentWord + 1) {
                                             return {...wordComponent, cssClass: "highlighted"};
@@ -147,9 +152,11 @@ const TypingArea = ({
                                     setCurrentWord(currentWord + 1);
                                 } else {
                                 //     setStartTime(null);
-                                    console.log('Total correct characters: ', getTotalCharacters(words))
+                                    console.log(`number of words: ${words.length}. current word: ${currentWord + 1}`);
+                                    console.log('Total characters: ', getTotalCharacters(words))
                                     setEndTime(Date.now());
                                     setWpm(calculateWpm(startTime, endTime, correctCharacters, incorrectCharacters));
+                                    setCurrentWord(currentWord + 1);
                                 }
                                 setTypedWord("");
                                 setWordComponents(newWordComponents);
@@ -262,8 +269,13 @@ interface WordsJson {
  * @returns 
  */
 const calculateWpm = (startTime: number, endTime: number, correctCharacters: number, incorrectCharacters: number) => {
-    const seconds = (endTime - startTime) / 1000;
-    const wpm = (60 / seconds) * (correctCharacters - incorrectCharacters);
+    console.log(`start time: ${startTime}, end time: ${endTime}`);
+    const seconds = (Date.now() - startTime) / 1000;
+    console.log('seconds: ', seconds);
+    const wpm = (1 / (seconds / 60)) * ((correctCharacters - incorrectCharacters) / 5);
+    const wpm2 = ((1 / (seconds / 60)) * ((correctCharacters - incorrectCharacters))) / 5;
+    console.log('wpm: ', wpm);
+    console.log('wpm2: ', wpm2);
     console.log(`Correct characters: ${correctCharacters}. Incorrect characters: ${incorrectCharacters}.`);
     return endTime - startTime;
 }
