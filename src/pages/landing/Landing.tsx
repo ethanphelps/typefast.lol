@@ -3,9 +3,10 @@ import './landing.scss';
 import { getConfig } from '../../config';
 import { getWordList, getRandomizedWordsList } from '../../services/words/words-service';
 import { TypingArea } from '../../components/TypingArea';
+import { TypingMode } from '../../models/models';
 
 const config = getConfig();
-const LENGTH = 25;
+const LENGTH = 50;
 
 
 const Header = ({ }): React.ReactElement => {
@@ -24,31 +25,18 @@ const Header = ({ }): React.ReactElement => {
  * the words are reset?
  */
 export const Landing: React.FC = (): React.ReactElement => {
-    // const [startTime, setStartTime] = useState<number | null>(null);
-    // const [endTime, setEndTime] = useState<number | null>(null);
     const [wpm, setWpm] = useState<number | null>(null);
-    // const [correctCharacters, setCorrectCharacters] = useState<number | null>(null);
-    // const [incorrectCharacters, setIncorrectCharacters] = useState<number | null>(null);
-
-    // if(endTime) {
-    //     setStartTime(null);
-    //     setEndTime(null);
-    //     setWpm(calculateWpm(startTime, endTime, correctCharacters, incorrectCharacters));
-    // }
-
+    const [accuracy, setAccuracy] = useState<number | null>(null);
 
     return (
         <div className="landing-container">
             <Header />
             <div className="body-container">
                 <TypingArea
-                    // words={randomizedWords}
-                    // setRandomizedWords={setRandomizedWords}
                     setWpm={setWpm}
-                    // setStartTime={setStartTime}
-                    // setEndTime={setEndTime}
-                    // setCorrectCharacters={setCorrectCharacters}
-                    // setIncorrectCharacters={setIncorrectCharacters}
+                    setAccuracy={setAccuracy}
+                    mode={TypingMode.COUNT}
+                    fixedLength={LENGTH}
                 />
             </div>
         </div>

@@ -1,12 +1,15 @@
 import React, { useEffect, useState, Suspense, ReactHTML } from 'react';
 import { getWordList, getRandomizedWordsList } from '../services/words/words-service';
 import { TypingService } from '../services/typing/typing-service';
+import { TypingMode } from '../models/models';
 
-const LENGTH = 25;
 const deleteInputTypes = ['deleteContentBackward', 'deleteWordBackward', 'deleteSoftLineBackward', 'deleteHardLineBackward'];
 
 interface TypingAreaProps {
     setWpm: React.Dispatch<React.SetStateAction<number>>;
+    setAccuracy: React.Dispatch<React.SetStateAction<number>>;
+    mode: TypingMode;
+    fixedLength: number;
 }
 
 const shouldMoveToNextWord = (typedWord: string, keyPressed: string): boolean => {
@@ -15,12 +18,16 @@ const shouldMoveToNextWord = (typedWord: string, keyPressed: string): boolean =>
 
 
 export const TypingArea = ({ 
-    setWpm
+    setWpm,
+    setAccuracy,
+    mode,
+    fixedLength
 }: TypingAreaProps): React.ReactElement => {
-    const [words, setWords] = useState<string[] | null>(null);
-    const [wordComponents, setWordComponents] = useState<WordComponentData[] | null>(null);
+    const [words, setWords] = useState<string[] | null>(null); // for tracking words to be typed
+    const [typedWords, setTypedWords] = useState<string[]>([]); // for tracking actual values typed for each word
+    const [wordComponents, setWordComponents] = useState<WordComponentData[] | null>(null); // component data for words rendered to screen - updated to change css classes
     const [currentWord, setCurrentWord] = useState(0);
-    const [typedWord, setTypedWord] = useState("");
+    const [typedWord, setTypedWord] = useState(""); // updates input value
     const [inputClass, setInputClass] = useState<string>("typing-input");
     const [typingStarted, setTypingStarted] = useState<boolean>(false);
     const [correctCharacters, setCorrectCharacters] = useState<number>(0);
@@ -31,7 +38,7 @@ export const TypingArea = ({
     const resetStates = () => {
         setCurrentWord(0);
         setTypedWord("");
-        const newRandomizedWords = getRandomizedWordsList(getWordList(), LENGTH);
+        const newRandomizedWords = getRandomizedWordsList(getWordList(), fixedLength);
         setWords(newRandomizedWords);
         setWordComponents(getWordComponentList(newRandomizedWords));
         setInputClass("typing-input");
@@ -40,6 +47,7 @@ export const TypingArea = ({
         setIncorrectCharacters(0);
         setStartTime(null);
         setEndTime(null);
+        setTypedWords(newRandomizedWords.map(() => ""));
     }
 
     useEffect(() => {
@@ -58,6 +66,67 @@ export const TypingArea = ({
         setTypedWord(inputValue);
         // decrement correct/incorrect characters based on how much was deleted and which characters were deleted
         // need a way of telling which characters in typed word are correct/incorrect and where their location in the word is
+    }
+
+    /**
+     * updates the css class of the typed word to reflect whether it was typed correctly or not
+     */
+    const updateWordComponents = (correct: boolean): WordComponentData[] => {
+        const newClassName = correct ? "correct" : "incorrect"; 
+        let updatedWordComponents = [...wordComponents];
+        updatedWordComponents[currentWord] = {
+            ...updatedWordComponents[currentWord],
+            cssClass: newClassName
+        }
+        return updatedWordComponents;
+    }
+
+    const setNextHighlightedWord = (wordComponents: WordComponentData[]) => {
+        const updatedWordComponents = [...wordComponents];
+        updatedWordComponents[currentWord + 1] = {
+            ...updatedWordComponents[currentWord + 1],
+            cssClass: "highlighted"
+        }
+        return updatedWordComponents;
+    }
+
+    const updateTypedWords = (inputValue: string) => {
+        console.log(`updating typed words with ${inputValue} at the ${currentWord} index`);
+        const updatedTypedWords = [...typedWords];
+        updatedTypedWords[currentWord] = inputValue;
+        setTypedWords(updatedTypedWords);
+    }
+
+    const handleWordComplete = (inputValue: string) => {
+        console.log('next word! word typed was: ', inputValue);
+        updateTypedWords(inputValue)
+        const correct = inputValue === words[currentWord];
+        if(correct) {
+            console.log('word was typed correctly!');
+        } else {
+            console.log(`word was typed incorrectly! word should have been: ${words[currentWord]}. word typed: ${typedWord}`);
+        }
+        let updatedWordComponents = updateWordComponents(correct);
+        if(currentWord + 1 < wordComponents.length) {
+            updatedWordComponents = setNextHighlightedWord(updatedWordComponents);
+            setCurrentWord(currentWord + 1);
+        } else {
+            // extract into own function for finalizing type test and calculating wpm
+            const finalTypedWords = [...typedWords]; // need local variable for final typed words since typedWords state is not updated until next render is complete
+            finalTypedWords[currentWord] = inputValue;
+            const totalCharacters = getTotalCharacters(words);
+            const correctCharacters = getCorrectCharacters(words, finalTypedWords);
+            console.log(`number of words: ${words.length}. current word: ${currentWord + 1}`);
+            console.log('Total characters: ', totalCharacters)
+            setEndTime(Date.now());
+            setWpm(calculateWpm(startTime, Date.now(), correctCharacters, incorrectCharacters));
+            setAccuracy(calculateNaiveAccuracy(totalCharacters, correctCharacters));
+            setCurrentWord(currentWord + 1);
+        }
+        setTypedWord("");
+        setWordComponents(updatedWordComponents);
+        setInputClass("typing-input")
+
     }
 
     const handleInput = (event: React.ChangeEvent) => {
@@ -97,47 +166,7 @@ export const TypingArea = ({
 
         // check if word correct incrementally
         if(shouldMoveToNextWord(inputValue, characterTyped)) {
-            console.log('next word! word typed was: ', typedWord);
-            if(inputValue.trim() === words[currentWord]) {
-                console.log('word was typed correctly!');
-            } else {
-                console.log(`word was typed incorrectly! word should have been: ${words[currentWord]}. word typed: ${typedWord}`);
-            }
-            const newClassName = inputValue.trim() === words[currentWord] ? "correct" : "incorrect"; // setting css class for completed word
-            // reset typedword state
-            // does this map need to be here? can't you just index into the wordComponents array? the deep copy may be for triggering rerender actually...
-            // extract into own function
-            let newWordComponents = [...wordComponents].map((wordComponent, index) => {
-                if(index === currentWord) {
-                    return {...wordComponent, cssClass: newClassName};
-                }
-                return wordComponent;
-            });
-            newWordComponents[currentWord] = {
-                ...newWordComponents[currentWord],
-                cssClass: newClassName
-            }
-            // extract into own function for setting next highlighted word
-            if(currentWord + 1 < wordComponents.length) {
-                newWordComponents = [...newWordComponents].map((wordComponent, index) => {
-                    if(index === currentWord + 1) {
-                        return {...wordComponent, cssClass: "highlighted"};
-                    }
-                    return wordComponent;
-                })
-                setCurrentWord(currentWord + 1);
-            } else {
-            //     setStartTime(null);
-                // extract into own function for finalizing type test and calculating wpm
-                console.log(`number of words: ${words.length}. current word: ${currentWord + 1}`);
-                console.log('Total characters: ', getTotalCharacters(words))
-                setEndTime(Date.now());
-                setWpm(calculateWpm(startTime, endTime, correctCharacters, incorrectCharacters));
-                setCurrentWord(currentWord + 1);
-            }
-            setTypedWord("");
-            setWordComponents(newWordComponents);
-            setInputClass("typing-input")
+            handleWordComplete(inputValue.trim());
         }
     }
 
@@ -172,7 +201,21 @@ export const TypingArea = ({
 
 
 const getTotalCharacters = (words: string[]): number => {
-    return words.reduce((sum: number, word: string) => sum + word.length, 0);
+    return words.reduce((sum: number, word: string) => sum + word.length + 1, 0);
+}
+
+const getCorrectCharacters = (words: string[], typedWords: string[]): number => {
+    console.log('typed words: ', typedWords);
+    let sum = 0;
+    for(let i = 0; i < typedWords.length; i++) {
+        if(typedWords[i] === words[i]) {
+            sum += typedWords[i].length + 1;
+        } else {
+            console.log(`mistyped word at index ${i}. typed word: ${typedWords[i]}. correct word: ${words[i]}`);
+        }
+    }
+    console.log('correct characters: ', sum);
+    return sum;
 }
 
 /**
@@ -238,12 +281,20 @@ interface WordsJson {
  */
 const calculateWpm = (startTime: number, endTime: number, correctCharacters: number, incorrectCharacters: number) => {
     console.log(`start time: ${startTime}, end time: ${endTime}`);
-    const seconds = (Date.now() - startTime) / 1000;
+    const seconds = (endTime - startTime) / 1000;
+    const fractionOfMinute = seconds / 60;
+    const wordsTyped = correctCharacters / 5;
+    const wpm3 = wordsTyped / fractionOfMinute;
     console.log('seconds: ', seconds);
     const wpm = (1 / (seconds / 60)) * ((correctCharacters - incorrectCharacters) / 5);
     const wpm2 = ((1 / (seconds / 60)) * ((correctCharacters - incorrectCharacters))) / 5;
     console.log('wpm: ', wpm);
     console.log('wpm2: ', wpm2);
+    console.log('wpm3: ', wpm3);
     console.log(`Correct characters: ${correctCharacters}. Incorrect characters: ${incorrectCharacters}.`);
-    return endTime - startTime;
+    return wpm3;
+}
+
+const calculateNaiveAccuracy = (totalCharacters: number, correctCharacters: number) => {
+    return (correctCharacters / totalCharacters) * 100;
 }
