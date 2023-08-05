@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import './landing.scss';
 import { getConfig } from '../../config';
-import { getWordList, getRandomizedWordsList } from '../../services/words/words-service';
 import { TypingArea } from '../../components/TypingArea';
-import { TypingMode } from '../../models/models';
+import { TypingModes } from '../../models/models';
+import { FixedWordExerciseLength, FixedWordExerciseLengths } from '../../services/exercises/fixed-words-exercise.service';
+import { WordsSource, WordsSources } from '../../services/words/words.interface';
 
 const config = getConfig();
-const LENGTH = 50;
+const LENGTH: FixedWordExerciseLength = FixedWordExerciseLengths.LONG;
+const SOURCE: WordsSource = WordsSources.ENGLISH_BASIC;
 
 
 const Header = ({ }): React.ReactElement => {
@@ -35,8 +37,9 @@ export const Landing: React.FC = (): React.ReactElement => {
                 <TypingArea
                     setWpm={setWpm}
                     setAccuracy={setAccuracy}
-                    mode={TypingMode.COUNT}
+                    mode={TypingModes.COUNT}
                     fixedLength={LENGTH}
+                    source={SOURCE}
                 />
             </div>
         </div>
