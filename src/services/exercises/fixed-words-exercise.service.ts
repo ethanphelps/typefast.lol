@@ -1,5 +1,5 @@
 import { WordComponentData } from "../../components/TypingArea";
-import { WordsSource } from "../words/words.interface";
+import WordsService from "../words/words-service";
 import { TypingExercise } from "./typing-exercise.abstract.service";
 export const FixedWordExerciseLengths = {
     SHORT: 10,
@@ -11,11 +11,12 @@ export type FixedWordExerciseLength = ObjectValues<typeof FixedWordExerciseLengt
 
 export class FixedWordsExercise extends TypingExercise {
     constructor(
-        wordsSource: WordsSource,
+        wordsService: WordsService,
         length: FixedWordExerciseLength,
-        wordsComponent: WordComponentData[],
+        wordComponents: WordComponentData[],
         currentWord: number,
         typedWord: string,
+        typedWords: string[],
         inputClass: string,
         typingStarted: boolean,
         correctCharacters: number,
@@ -26,6 +27,7 @@ export class FixedWordsExercise extends TypingExercise {
         setWordComponents: React.Dispatch<React.SetStateAction<WordComponentData[]>>,
         setCurrentWord: React.Dispatch<React.SetStateAction<number>>,
         setTypedWord: React.Dispatch<React.SetStateAction<string>>,
+        setTypedWords: React.Dispatch<React.SetStateAction<string[]>>,
         setInputClass: React.Dispatch<React.SetStateAction<string>>,
         setTypingStarted: React.Dispatch<React.SetStateAction<boolean>>,
         setCorrectCharacters: React.Dispatch<React.SetStateAction<number>>,
@@ -34,10 +36,11 @@ export class FixedWordsExercise extends TypingExercise {
         setEndTime: React.Dispatch<React.SetStateAction<number | null>>,
     ) {
         super(
-            wordsSource,
-            wordsComponent,
+            wordsService,
+            wordComponents,
             currentWord,
             typedWord,
+            typedWords,
             inputClass,
             typingStarted,
             correctCharacters,
@@ -45,9 +48,10 @@ export class FixedWordsExercise extends TypingExercise {
             startTime,
             endTime,
             setWords,
-            setWordComponents,
+            setWordComponents, // TODO: move setWordComponents to TypingArea
             setCurrentWord,
             setTypedWord,
+            setTypedWords,
             setInputClass,
             setTypingStarted,
             setCorrectCharacters,

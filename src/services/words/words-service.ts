@@ -9,12 +9,13 @@ export default class WordsService {
     }
 
     public getRandomizedWords(length: number): string[] {
+        console.debug(`Getting ${length} random words from ${this.words.length} words.`)
         let result: string[] = [];
         for (let i = 0; i < length; i++) {
             const index = Math.floor(Math.random() * this.words.length);
             result.push(this.words[index]);
         }
-        console.log(result);
+        console.debug(result);
         return result;
     }
 }

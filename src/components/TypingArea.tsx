@@ -3,6 +3,7 @@ import { TypingExercise } from '../services/exercises/typing-exercise.abstract.s
 import { TypingMode } from '../models/models';
 import { FixedWordExerciseLength, FixedWordsExercise } from '../services/exercises/fixed-words-exercise.service';
 import { WordsSource } from '../services/words/words.interface';
+import WordsService from '../services/words/words-service';
 
 const deleteInputTypes = ['deleteContentBackward', 'deleteWordBackward', 'deleteSoftLineBackward', 'deleteHardLineBackward'];
 
@@ -27,6 +28,7 @@ export const TypingArea = ({
     fixedLength,
     source
 }: TypingAreaProps): React.ReactElement => {
+    const [wordsService, setWordsService] = useState<WordsService | null>(() => new WordsService(source));
     const [words, setWords] = useState<string[] | null>(null); // for tracking words to be typed
     const [typedWords, setTypedWords] = useState<string[]>([]); // for tracking actual values typed for each word
     const [wordComponents, setWordComponents] = useState<WordComponentData[] | null>(null); // component data for words rendered to screen - updated to change css classes
@@ -38,36 +40,25 @@ export const TypingArea = ({
     const [incorrectCharacters, setIncorrectCharacters] = useState<number>(0);
     const [startTime, setStartTime] = useState<number | null>(null);
     const [endTime, setEndTime] = useState<number | null>(null);
-    let typingService: TypingExercise;
-    const resetStates = () => { // should this move into TypingService?
-        typingService = new FixedWordsExercise(
-            source,
-            fixedLength,
-            wordComponents,
-            currentWord,
-            typedWord,
-            inputClass,
-            typingStarted,
-            correctCharacters,
-            incorrectCharacters,
-            startTime,
-            endTime,
-            setWords,
-            setWordComponents,
-            setCurrentWord,
-            setTypedWord,
-            setInputClass,
-            setTypingStarted,
-            setCorrectCharacters,
-            setIncorrectCharacters,
-            setStartTime,
-            setEndTime,
-        )
+
+    const resetStates = () => {
+        const wordsList = wordsService.getRandomizedWords(fixedLength);
+        setCurrentWord(0);
+        setTypedWord("");
+        setWords(wordsList);
+        setWordComponents(getWordComponentList(wordsList));
+        setInputClass("typing-input");
+        setTypingStarted(false);
+        setCorrectCharacters(0);
+        setIncorrectCharacters(0);
+        setStartTime(null);
+        setEndTime(null);
+        setTypedWords(wordsList.map(() => ""));
     }
 
     useEffect(() => {
         resetStates();
-    }, []);
+    }, [])
 
     const isDelete = (event: React.ChangeEvent, inputValue: string): boolean => {
         return deleteInputTypes.includes((event.nativeEvent as InputEvent).inputType) || inputValue.length < typedWord.length;
@@ -185,6 +176,11 @@ export const TypingArea = ({
         }
     }
 
+    // const onInput = (event: React.ChangeEvent) => {
+    //     typingService.handleInput(event);
+    //     handleInput(event);
+    // }
+
     return (
         <div className="typing-container">
             <article className="typing-display">
@@ -283,9 +279,6 @@ const getWordComponentList = (selectedWords: string[]): WordComponentData[] => {
     return components;
 }
 
-interface WordsJson {
-    [key: string]: string[]
-}
 
 /**
  * WPM = characters per min / 5
