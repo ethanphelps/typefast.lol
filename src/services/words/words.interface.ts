@@ -1,3 +1,4 @@
+import { ObjectValues } from "../../models/models";
 export const WordsSources = {
     ENGLISH_BASIC: 'english-basic',
     ENGLISH_INTERMEDIATE: 'english-intermediate',
@@ -6,5 +7,4 @@ export const WordsSources = {
     QUOTES_MEDIUM: 'quotes-medium',
     QUOTES_LONG: 'quotes-long',
 } as const;
-type ObjectValues<T> = T[keyof T];
 export type WordsSource = ObjectValues<typeof WordsSources>;

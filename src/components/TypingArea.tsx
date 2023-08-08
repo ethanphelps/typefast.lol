@@ -1,6 +1,6 @@
-import React, { useEffect, useState, Suspense, ReactHTML } from 'react';
+import React, { useEffect, useState, Suspense, ReactHTML, useReducer } from 'react';
 import { TypingExercise } from '../services/exercises/typing-exercise.abstract.service';
-import { TypingMode } from '../models/models';
+import { ObjectValues, TypingMode } from '../models/models';
 import { FixedWordExerciseLength, FixedWordsExercise } from '../services/exercises/fixed-words-exercise.service';
 import { WordsSource } from '../services/words/words.interface';
 import WordsService from '../services/words/words-service';
@@ -15,11 +15,60 @@ interface TypingAreaProps {
     source: WordsSource;
 }
 
-// TODO: add force correctness mode, but that would just affect the overall correctness, not whether you can move to the next word or not
-const shouldMoveToNextWord = (typedWord: string, keyPressed: string): boolean => {
-    return typedWord && keyPressed === ' ';
+const TypingActions = {
+    RESET: 'reset',
+    WORD_COMPLETE: 'word-complete',
+    CHARACTER_TYPED: 'character-typed',
+    CHARACTER_DELETED: 'character-deleted',
+    EXERCISE_COMPLETE: 'exercise-complete'
+} as const;
+type TypingAction = ObjectValues<typeof TypingActions>;
+interface DispatchInput {
+    type: TypingAction;
+    payload?: Partial<ExerciseState>
 }
 
+interface ExerciseState {
+    words: string[];
+    wordComponents: WordComponentData[];
+    typedWords: string[];
+    currentWord: number;
+    typedWord: string;
+    inputClass: string;
+    typingStarted: boolean;
+    correctCharacters: number;
+    incorrectCharacters: number;
+    startTime: number | null;
+    endTime: number | null;
+}
+
+const reducer = (state: ExerciseState, action: DispatchInput): ExerciseState => {
+    switch(action.type) {
+        case(TypingActions.RESET):
+            // const newWords = 
+            return {
+                ...state,
+                // words: [],
+                // typedWords: [],
+                // wordComponents: [],
+                ...action.payload,
+                currentWord: 0,
+                typedWord: "",
+                inputClass: "typing-input",
+                typingStarted: false,
+                correctCharacters: 0,
+                incorrectCharacters: 0,
+                startTime: null,
+                endTime: null
+            }
+        case(TypingActions.CHARACTER_TYPED):
+            return {
+                ...state
+            }
+        default:
+            return state;
+    }
+}
 
 export const TypingArea = ({
     setWpm,
@@ -28,45 +77,54 @@ export const TypingArea = ({
     fixedLength,
     source
 }: TypingAreaProps): React.ReactElement => {
-    const [wordsService, setWordsService] = useState<WordsService | null>(() => new WordsService(source));
-    const [words, setWords] = useState<string[] | null>(null); // for tracking words to be typed
-    const [typedWords, setTypedWords] = useState<string[]>([]); // for tracking actual values typed for each word
-    const [wordComponents, setWordComponents] = useState<WordComponentData[] | null>(null); // component data for words rendered to screen - updated to change css classes
-    const [currentWord, setCurrentWord] = useState(0);
-    const [typedWord, setTypedWord] = useState(""); // updates input value
-    const [inputClass, setInputClass] = useState<string>("typing-input");
-    const [typingStarted, setTypingStarted] = useState<boolean>(false);
-    const [correctCharacters, setCorrectCharacters] = useState<number>(0);
-    const [incorrectCharacters, setIncorrectCharacters] = useState<number>(0);
-    const [startTime, setStartTime] = useState<number | null>(null);
-    const [endTime, setEndTime] = useState<number | null>(null);
+    const [wordsService, setWordsService] = useState<WordsService | null>(() => new WordsService(source)); // TODO: abstract WordsService out of TypingArea component
+
+    /**
+     * ExerciseState with a dispatch function where state is lazily initialized to the result of wordsService.getRandomizedWords()
+     */
+    const [state, dispatch] = useReducer(
+        reducer, 
+        wordsService.getRandomizedWords(fixedLength), 
+        (initialWords: string[]) => {
+            return {
+                words: initialWords, // see if you can initialize this to a list of words
+                wordComponents: getWordComponentList(initialWords),
+                typedWords: initialWords.map(() => ""),
+                currentWord: 0,
+                typedWord: "",
+                inputClass: "typing-input",
+                typingStarted: false,
+                correctCharacters: 0,
+                incorrectCharacters: 0,
+                startTime: null,
+                endTime: null
+            }
+        }
+    )
 
     const resetStates = () => {
-        const wordsList = wordsService.getRandomizedWords(fixedLength);
-        setCurrentWord(0);
-        setTypedWord("");
-        setWords(wordsList);
-        setWordComponents(getWordComponentList(wordsList));
-        setInputClass("typing-input");
-        setTypingStarted(false);
-        setCorrectCharacters(0);
-        setIncorrectCharacters(0);
-        setStartTime(null);
-        setEndTime(null);
-        setTypedWords(wordsList.map(() => ""));
+        const newWords = wordsService.getRandomizedWords(fixedLength);
+        dispatch({ 
+            type: TypingActions.RESET, 
+            payload: {
+                words: newWords,
+                typedWords: newWords.map(() => ""),
+                wordComponents: getWordComponentList(newWords),
+            }
+        });
     }
 
-    useEffect(() => {
-        resetStates();
-    }, [])
+    // useEffect(() => {
+    //     resetStates(); // may not need the reducer equivalent of this since it's initialized with these values
+    // }, [])
 
     const isDelete = (event: React.ChangeEvent, inputValue: string): boolean => {
-        return deleteInputTypes.includes((event.nativeEvent as InputEvent).inputType) || inputValue.length < typedWord.length;
+        return deleteInputTypes.includes((event.nativeEvent as InputEvent).inputType) || inputValue.length < state.typedWord.length;
     }
 
     const handleDeletion = (inputValue: string) => {
         console.log('DELETE');
-        if (typedWord.length === 0) {
+        if (state.typedWord.length === 0) {
             return;
         }
         setTypedWord(inputValue);
@@ -211,6 +269,11 @@ export const TypingArea = ({
 }
 
 
+// TODO: add force correctness mode, but that would just affect the overall correctness, not whether you can move to the next word or not
+const shouldMoveToNextWord = (typedWord: string, keyPressed: string): boolean => {
+    return typedWord && keyPressed === ' ';
+}
+
 const getTotalCharacters = (words: string[]): number => {
     return words.reduce((sum: number, word: string) => sum + word.length + 1, 0);
 }
@@ -264,10 +327,6 @@ export interface WordComponentData {
  * @param selectedWords the words chosen from the list for this type test
  */
 const getWordComponentList = (selectedWords: string[]): WordComponentData[] => {
-    // const components = selectedWords.map((word: string, index: number) => (
-    //     <WordComponent word={word} cssClass="" key={index}/>
-    // ));
-    // components[0] = (<WordComponent word={components[0].props.word} cssClass="highlighted" key={0}/>);
     const components = selectedWords.map((word: string, index: number) => {
         return {
             id: index,

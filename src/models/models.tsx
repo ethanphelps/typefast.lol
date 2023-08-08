@@ -4,5 +4,5 @@ export const TypingModes = {
     QUOTE: 'quote',
     PRACTICE: 'practice'
 } as const;
-type ObjectValues<T> = T[keyof T];
+export type ObjectValues<T> = T[keyof T];
 export type TypingMode = ObjectValues<typeof TypingModes>;
