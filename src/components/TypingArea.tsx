@@ -1,4 +1,4 @@
-import React, { useEffect, useState, Suspense, ReactHTML, useReducer } from 'react';
+import React, { useEffect, useState, Suspense, ReactHTML, useReducer, useMemo } from 'react';
 import { TypingExercise } from '../services/exercises/typing-exercise.abstract.service';
 import { ObjectValues, TypingMode } from '../models/models';
 import { FixedWordExerciseLength, FixedWordsExercise } from '../services/exercises/fixed-words-exercise.service';
@@ -15,11 +15,20 @@ interface TypingAreaProps {
     source: WordsSource;
 }
 
+// TODO: incorporate typedWords to use this interface. or combine both TypedWords and WordsComponents into one interface
+interface TypedWordData {
+    typedWord: string;
+    correct: boolean;
+    incorrectAttempts: []; // use to show mistakes in summary screen 
+}
+
 const TypingActions = {
     RESET: 'reset',
+    TYPING_STARTED: 'typing-started',
     WORD_COMPLETE: 'word-complete',
+    WORD_DELETED: 'word-deleted',
     CHARACTER_TYPED: 'character-typed',
-    CHARACTER_DELETED: 'character-deleted',
+    CHARACTER_DELETED: 'character-deleted', // may be superfluous 
     EXERCISE_COMPLETE: 'exercise-complete'
 } as const;
 type TypingAction = ObjectValues<typeof TypingActions>;
@@ -42,15 +51,15 @@ interface ExerciseState {
     endTime: number | null;
 }
 
+/**
+ * new words should be passed into the reducer via payload sice typedWords and wordComponents are derived from words
+ * TODO: reduce reliance on payload and set states inside reducer when possible
+ */
 const reducer = (state: ExerciseState, action: DispatchInput): ExerciseState => {
     switch(action.type) {
         case(TypingActions.RESET):
-            // const newWords = 
             return {
                 ...state,
-                // words: [],
-                // typedWords: [],
-                // wordComponents: [],
                 ...action.payload,
                 currentWord: 0,
                 typedWord: "",
@@ -61,9 +70,42 @@ const reducer = (state: ExerciseState, action: DispatchInput): ExerciseState => 
                 startTime: null,
                 endTime: null
             }
+        case(TypingActions.TYPING_STARTED):
+            return {
+                ...state,
+                typingStarted: true,
+                startTime: Date.now()
+            }
         case(TypingActions.CHARACTER_TYPED):
             return {
-                ...state
+                ...state,
+                ...action.payload,
+            }
+        case(TypingActions.CHARACTER_DELETED):
+            return {
+                ...state,
+                ...action.payload,
+            }
+        case(TypingActions.WORD_COMPLETE):
+            return {
+                ...state,
+                ...action.payload,
+                typedWord: "",
+                currentWord: state.currentWord + 1,
+                inputClass: "typing-input"
+            }
+        case(TypingActions.WORD_DELETED):
+            return {
+                ...state,
+                ...action.payload,
+            }
+        case(TypingActions.EXERCISE_COMPLETE):
+            console.debug('final states: ', state);
+            return {
+                ...state,
+                ...action.payload,
+                currentWord: state.currentWord + 1,
+                endTime: Date.now()
             }
         default:
             return state;
@@ -77,19 +119,23 @@ export const TypingArea = ({
     fixedLength,
     source
 }: TypingAreaProps): React.ReactElement => {
-    const [wordsService, setWordsService] = useState<WordsService | null>(() => new WordsService(source)); // TODO: abstract WordsService out of TypingArea component
+    // useMemo callback only called on initial render and when dependencies change
+    const wordsService = useMemo(() => {
+        // TODO: could memoize the wordsService instance instead of memoizing the result of calling getRandomizedWords()
+        return new WordsService(source, fixedLength);
+    }, [fixedLength, source, mode]);
 
     /**
      * ExerciseState with a dispatch function where state is lazily initialized to the result of wordsService.getRandomizedWords()
      */
     const [state, dispatch] = useReducer(
         reducer, 
-        wordsService.getRandomizedWords(fixedLength), 
-        (initialWords: string[]) => {
+        wordsService, 
+        (wordsService: WordsService) => {
             return {
-                words: initialWords, // see if you can initialize this to a list of words
-                wordComponents: getWordComponentList(initialWords),
-                typedWords: initialWords.map(() => ""),
+                words: wordsService.getRandomizedWords(), 
+                wordComponents: getWordComponentList(wordsService.getRandomizedWords()),
+                typedWords: wordsService.getRandomizedWords().map(() => ""),
                 currentWord: 0,
                 typedWord: "",
                 inputClass: "typing-input",
@@ -103,7 +149,8 @@ export const TypingArea = ({
     )
 
     const resetStates = () => {
-        const newWords = wordsService.getRandomizedWords(fixedLength);
+        wordsService.resetRandomizedWords(fixedLength);
+        const newWords = wordsService.getRandomizedWords();
         dispatch({ 
             type: TypingActions.RESET, 
             payload: {
@@ -122,24 +169,24 @@ export const TypingArea = ({
         return deleteInputTypes.includes((event.nativeEvent as InputEvent).inputType) || inputValue.length < state.typedWord.length;
     }
 
+    // TODO: change this logic to handle going backwards to other words
     const handleDeletion = (inputValue: string) => {
-        console.log('DELETE');
+        console.debug('DELETE');
         if (state.typedWord.length === 0) {
             return;
         }
-        setTypedWord(inputValue);
-        // decrement correct/incorrect characters based on how much was deleted and which characters were deleted
-        // need a way of telling which characters in typed word are correct/incorrect and where their location in the word is
     }
 
     /**
-     * updates the css class of the typed word to reflect whether it was typed correctly or not
+     * updates the css class of the typed word to reflect whether it was typed correctly or not. only called once word
+     * is complete
+     * TODO: combine with setNextHighlightedWord
      */
     const updateWordComponents = (correct: boolean): WordComponentData[] => {
         const newClassName = correct ? "correct" : "incorrect";
-        let updatedWordComponents = [...wordComponents];
-        updatedWordComponents[currentWord] = {
-            ...updatedWordComponents[currentWord],
+        let updatedWordComponents = [...state.wordComponents];
+        updatedWordComponents[state.currentWord] = {
+            ...updatedWordComponents[state.currentWord],
             cssClass: newClassName
         }
         return updatedWordComponents;
@@ -147,88 +194,78 @@ export const TypingArea = ({
 
     const setNextHighlightedWord = (wordComponents: WordComponentData[]) => {
         const updatedWordComponents = [...wordComponents];
-        updatedWordComponents[currentWord + 1] = {
-            ...updatedWordComponents[currentWord + 1],
-            cssClass: "highlighted"
-        }
+        if (state.currentWord + 1 < state.wordComponents.length) {
+            updatedWordComponents[state.currentWord + 1] = {
+                ...updatedWordComponents[state.currentWord + 1],
+                cssClass: "highlighted"
+            }
+        } 
         return updatedWordComponents;
     }
 
+    // TODO: pass in currentWord and typedWords and pull out of function
     const updateTypedWords = (inputValue: string) => {
-        console.log(`updating typed words with ${inputValue} at the ${currentWord} index`);
-        const updatedTypedWords = [...typedWords];
-        updatedTypedWords[currentWord] = inputValue;
-        setTypedWords(updatedTypedWords);
+        console.log(`updating typed words with ${inputValue} at the ${state.currentWord} index`);
+        const updatedTypedWords = [...state.typedWords];
+        updatedTypedWords[state.currentWord] = inputValue;
+        return updatedTypedWords;
     }
 
     const handleWordComplete = (inputValue: string) => {
-        console.log('next word! word typed was: ', inputValue);
-        updateTypedWords(inputValue)
-        const correct = inputValue === words[currentWord];
+        const correct = inputValue === state.words[state.currentWord];
         if (correct) {
             console.log('word was typed correctly!');
         } else {
-            console.log(`word was typed incorrectly! word should have been: ${words[currentWord]}. word typed: ${typedWord}`);
+            console.log(`word was typed incorrectly! word should have been: ${state.words[state.currentWord]}. word typed: ${state.typedWord}`);
         }
-        let updatedWordComponents = updateWordComponents(correct);
-        if (currentWord + 1 < wordComponents.length) {
-            updatedWordComponents = setNextHighlightedWord(updatedWordComponents);
-            setCurrentWord(currentWord + 1);
-        } else {
-            // extract into own function for finalizing type test and calculating wpm
-            const finalTypedWords = [...typedWords]; // need local variable for final typed words since typedWords state is not updated until next render is complete
-            finalTypedWords[currentWord] = inputValue;
-            const totalCharacters = getTotalCharacters(words);
-            const correctCharacters = getCorrectCharacters(words, finalTypedWords);
-            console.log(`number of words: ${words.length}. current word: ${currentWord + 1}`);
+        dispatch({
+            type: TypingActions.WORD_COMPLETE, 
+            payload: {
+                typedWords: updateTypedWords(inputValue),
+                wordComponents: setNextHighlightedWord(updateWordComponents(correct)),
+            }
+        })
+
+        if (state.currentWord + 1 >= state.words.length) {
+            // TODO: extract into own function for finalizing type test 
+            const finalTypedWords = [...state.typedWords]; // need local variable for final typed words since typedWords state is not updated until next render is complete
+            finalTypedWords[state.currentWord] = inputValue;
+            const totalCharacters = getTotalCharacters(state.words);
+            const correctCharacters = getCorrectCharacters(state.words, finalTypedWords);
+            console.log(`number of words: ${state.words.length}. current word: ${state.currentWord + 1}`);
             console.log('Total characters: ', totalCharacters)
-            setEndTime(Date.now());
-            setWpm(calculateWpm(startTime, Date.now(), correctCharacters, incorrectCharacters));
+            dispatch({
+                type: TypingActions.EXERCISE_COMPLETE,
+            });
+            setWpm(calculateWpm(state.startTime, Date.now(), correctCharacters, state.incorrectCharacters));
             setAccuracy(calculateNaiveAccuracy(totalCharacters, correctCharacters));
-            setCurrentWord(currentWord + 1);
         }
-        setTypedWord("");
-        setWordComponents(updatedWordComponents);
-        setInputClass("typing-input")
 
     }
 
     const handleInput = (event: React.ChangeEvent) => {
-        if (currentWord >= words.length) {
+        if (state.currentWord >= state.words.length) {
             return;
         }
-        if (!typingStarted) {
-            setStartTime(Date.now());
-            setTypingStarted(true);
-            console.log(Date.now());
+        if (!state.typingStarted) {
+            dispatch({type: TypingActions.TYPING_STARTED})
         }
         const inputValue = (event.target as HTMLInputElement).value;
-        console.log((event.nativeEvent as InputEvent).inputType);
+
+        dispatch({ 
+            type: TypingActions.CHARACTER_TYPED, 
+            payload: { 
+                typedWord: inputValue,
+                inputClass: getInputClass(state.words[state.currentWord], inputValue)
+            }
+        });
+
         if (isDelete(event, inputValue)) {
             handleDeletion(inputValue);
             return; // should we return here?
         }
         const characterTyped = isDelete(event, inputValue) ? null : inputValue[inputValue.length - 1];
 
-        const newInputClass = wordIsCorrect(words[currentWord], inputValue) ? "typing-input" : "typing-input incorrect-input";
-        setInputClass(newInputClass);
-
-        let characterChange = 0;
-        if (characterTyped !== " ") {
-            characterChange = inputValue.length < typedWord.length ? -1 : 1;
-        }
-        // this logic is flawed bc it doesn't account for how many characters were deleted in one motion and how many were correct/incorrect
-        if (wordIsCorrect(words[currentWord], inputValue)) {
-            setCorrectCharacters(correctCharacters + characterChange);
-            console.log('correct characters typed: ', correctCharacters);
-        } else {
-            setIncorrectCharacters(incorrectCharacters + characterChange)
-            console.log('incorrect characters typed: ', incorrectCharacters);
-        }
-
-        setTypedWord(inputValue);
-
-        // check if word correct incrementally
         if (shouldMoveToNextWord(inputValue, characterTyped)) {
             handleWordComplete(inputValue.trim());
         }
@@ -243,8 +280,8 @@ export const TypingArea = ({
         <div className="typing-container">
             <article className="typing-display">
                 {
-                    words
-                        ? wordComponents.map((data: WordComponentData) => {
+                    state.words
+                        ? state.wordComponents.map((data: WordComponentData) => {
                             return <WordComponent
                                 word={data.word}
                                 key={data.id}
@@ -257,8 +294,8 @@ export const TypingArea = ({
             <div className="input-row">
                 <input
                     type="text"
-                    value={typedWord}
-                    className={inputClass}
+                    value={state.typedWord}
+                    className={state.inputClass}
                     onChange={handleInput}
                 >
                 </input>
@@ -307,6 +344,9 @@ const wordIsCorrect = (targetWord: string, typedWord: string) => {
     return typedWord.trim() === targetWord;
 }
 
+const getInputClass = (word: string, typedWord: string): string => {
+    return wordIsCorrect(word, typedWord) ? "typing-input" : "typing-input incorrect-input";
+}
 
 const WordComponent = ({ word, cssClass }: { word: string, cssClass: string }): React.ReactElement => {
     return (
@@ -351,17 +391,14 @@ const calculateWpm = (startTime: number, endTime: number, correctCharacters: num
     const seconds = (endTime - startTime) / 1000;
     const fractionOfMinute = seconds / 60;
     const wordsTyped = correctCharacters / 5;
-    const wpm3 = wordsTyped / fractionOfMinute;
+    const wpm = wordsTyped / fractionOfMinute;
     console.log('seconds: ', seconds);
-    const wpm = (1 / (seconds / 60)) * ((correctCharacters - incorrectCharacters) / 5);
-    const wpm2 = ((1 / (seconds / 60)) * ((correctCharacters - incorrectCharacters))) / 5;
     console.log('wpm: ', wpm);
-    console.log('wpm2: ', wpm2);
-    console.log('wpm3: ', wpm3);
-    console.log(`Correct characters: ${correctCharacters}. Incorrect characters: ${incorrectCharacters}.`);
-    return wpm3;
+    return wpm;
 }
 
 const calculateNaiveAccuracy = (totalCharacters: number, correctCharacters: number) => {
-    return (correctCharacters / totalCharacters) * 100;
+    const accuracy = (correctCharacters / totalCharacters) * 100;
+    console.log(`accuracy: ${accuracy}`);
+    return accuracy;
 }

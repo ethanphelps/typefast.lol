@@ -60,6 +60,6 @@ export class FixedWordsExercise extends TypingExercise {
             setEndTime
         );
 
-        this.words = this.wordsService.getRandomizedWords(length);
+        this.words = this.wordsService.getRandomizedWords();
     }
 }
