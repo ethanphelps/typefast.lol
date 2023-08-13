@@ -1,7 +1,6 @@
-import React, { useEffect, useState, Suspense, ReactHTML, useReducer, useMemo } from 'react';
-import { TypingExercise } from '../services/exercises/typing-exercise.abstract.service';
+import React, { useEffect, useState, Suspense, ReactHTML, useReducer, useMemo, useRef } from 'react';
 import { ObjectValues, TypingMode } from '../models/models';
-import { FixedWordExerciseLength, FixedWordsExercise } from '../services/exercises/fixed-words-exercise.service';
+import { FixedWordExerciseLength } from '../services/exercises/fixed-words-exercise.service';
 import { WordsSource } from '../services/words/words.interface';
 import WordsService from '../services/words/words-service';
 
@@ -15,11 +14,13 @@ interface TypingAreaProps {
     source: WordsSource;
 }
 
-// TODO: incorporate typedWords to use this interface. or combine both TypedWords and WordsComponents into one interface
-interface TypedWordData {
+// should all this state be in one interface? would this trigger unnecessary re-renders?
+interface WordData {
+    id: number;
+    word: string;
     typedWord: string;
-    correct: boolean;
-    incorrectAttempts: []; // use to show mistakes in summary screen 
+    incorrectAttempts: []; 
+    cssClass: string;
 }
 
 const TypingActions = {
@@ -39,8 +40,7 @@ interface DispatchInput {
 
 interface ExerciseState {
     words: string[];
-    wordComponents: WordComponentData[];
-    typedWords: string[];
+    wordData: WordData[];
     currentWord: number;
     typedWord: string;
     inputClass: string;
@@ -124,6 +124,7 @@ export const TypingArea = ({
         // TODO: could memoize the wordsService instance instead of memoizing the result of calling getRandomizedWords()
         return new WordsService(source, fixedLength);
     }, [fixedLength, source, mode]);
+    const inputRef = useRef<HTMLInputElement>(null);
 
     /**
      * ExerciseState with a dispatch function where state is lazily initialized to the result of wordsService.getRandomizedWords()
@@ -131,11 +132,10 @@ export const TypingArea = ({
     const [state, dispatch] = useReducer(
         reducer, 
         wordsService, 
-        (wordsService: WordsService) => {
+        (wordsService: WordsService): ExerciseState => {
             return {
                 words: wordsService.getRandomizedWords(), 
-                wordComponents: getWordComponentList(wordsService.getRandomizedWords()),
-                typedWords: wordsService.getRandomizedWords().map(() => ""),
+                wordData: getWordDataList(wordsService.getRandomizedWords()),
                 currentWord: 0,
                 typedWord: "",
                 inputClass: "typing-input",
@@ -148,6 +148,10 @@ export const TypingArea = ({
         }
     )
 
+    useEffect(() => {
+        inputRef.current.focus();
+    }, [])
+
     const resetStates = () => {
         wordsService.resetRandomizedWords(fixedLength);
         const newWords = wordsService.getRandomizedWords();
@@ -155,15 +159,11 @@ export const TypingArea = ({
             type: TypingActions.RESET, 
             payload: {
                 words: newWords,
-                typedWords: newWords.map(() => ""),
-                wordComponents: getWordComponentList(newWords),
+                wordData: getWordDataList(newWords)
             }
         });
+        inputRef.current.focus();
     }
-
-    // useEffect(() => {
-    //     resetStates(); // may not need the reducer equivalent of this since it's initialized with these values
-    // }, [])
 
     const isDelete = (event: React.ChangeEvent, inputValue: string): boolean => {
         return deleteInputTypes.includes((event.nativeEvent as InputEvent).inputType) || inputValue.length < state.typedWord.length;
@@ -177,38 +177,22 @@ export const TypingArea = ({
         }
     }
 
-    /**
-     * updates the css class of the typed word to reflect whether it was typed correctly or not. only called once word
-     * is complete
-     * TODO: combine with setNextHighlightedWord
-     */
-    const updateWordComponents = (correct: boolean): WordComponentData[] => {
+    // TODO: move this into reducer
+    const updateWordData = (inputValue: string, correct: boolean, wordData: WordData[]) => {
+        const newWordData = [...wordData];
         const newClassName = correct ? "correct" : "incorrect";
-        let updatedWordComponents = [...state.wordComponents];
-        updatedWordComponents[state.currentWord] = {
-            ...updatedWordComponents[state.currentWord],
+        newWordData[state.currentWord] = {
+            ...newWordData[state.currentWord],
+            typedWord: inputValue,
             cssClass: newClassName
         }
-        return updatedWordComponents;
-    }
-
-    const setNextHighlightedWord = (wordComponents: WordComponentData[]) => {
-        const updatedWordComponents = [...wordComponents];
-        if (state.currentWord + 1 < state.wordComponents.length) {
-            updatedWordComponents[state.currentWord + 1] = {
-                ...updatedWordComponents[state.currentWord + 1],
+        if (state.currentWord + 1 < wordData.length) {
+            newWordData[state.currentWord + 1] = {
+                ...newWordData[state.currentWord + 1],
                 cssClass: "highlighted"
             }
         } 
-        return updatedWordComponents;
-    }
-
-    // TODO: pass in currentWord and typedWords and pull out of function
-    const updateTypedWords = (inputValue: string) => {
-        console.log(`updating typed words with ${inputValue} at the ${state.currentWord} index`);
-        const updatedTypedWords = [...state.typedWords];
-        updatedTypedWords[state.currentWord] = inputValue;
-        return updatedTypedWords;
+        return newWordData;
     }
 
     const handleWordComplete = (inputValue: string) => {
@@ -221,17 +205,18 @@ export const TypingArea = ({
         dispatch({
             type: TypingActions.WORD_COMPLETE, 
             payload: {
-                typedWords: updateTypedWords(inputValue),
-                wordComponents: setNextHighlightedWord(updateWordComponents(correct)),
+                // typedWords: updateTypedWords(inputValue),
+                // wordComponents: setNextHighlightedWord(updateWordComponents(correct)),
+                wordData: updateWordData(inputValue, correct, state.wordData),
             }
         })
 
         if (state.currentWord + 1 >= state.words.length) {
             // TODO: extract into own function for finalizing type test 
-            const finalTypedWords = [...state.typedWords]; // need local variable for final typed words since typedWords state is not updated until next render is complete
-            finalTypedWords[state.currentWord] = inputValue;
-            const totalCharacters = getTotalCharacters(state.words);
-            const correctCharacters = getCorrectCharacters(state.words, finalTypedWords);
+            const finalWordData = [...state.wordData]; // need local variable for final typed words since typedWords state is not updated until next render is complete
+            finalWordData[state.currentWord].typedWord = inputValue;
+            const totalCharacters = getTotalCharacters(finalWordData.map((wordData) => wordData.word));
+            const correctCharacters = getCorrectCharacters(finalWordData);
             console.log(`number of words: ${state.words.length}. current word: ${state.currentWord + 1}`);
             console.log('Total characters: ', totalCharacters)
             dispatch({
@@ -271,17 +256,12 @@ export const TypingArea = ({
         }
     }
 
-    // const onInput = (event: React.ChangeEvent) => {
-    //     typingService.handleInput(event);
-    //     handleInput(event);
-    // }
-
     return (
         <div className="typing-container">
             <article className="typing-display">
                 {
                     state.words
-                        ? state.wordComponents.map((data: WordComponentData) => {
+                        ? state.wordData.map((data: WordData) => {
                             return <WordComponent
                                 word={data.word}
                                 key={data.id}
@@ -297,6 +277,7 @@ export const TypingArea = ({
                     value={state.typedWord}
                     className={state.inputClass}
                     onChange={handleInput}
+                    ref={inputRef}
                 >
                 </input>
                 <button type="button" className="retry-button" onClick={resetStates}>retry</button>
@@ -315,14 +296,14 @@ const getTotalCharacters = (words: string[]): number => {
     return words.reduce((sum: number, word: string) => sum + word.length + 1, 0);
 }
 
-const getCorrectCharacters = (words: string[], typedWords: string[]): number => {
-    console.log('typed words: ', typedWords);
+const getCorrectCharacters = (wordData: WordData[]): number => {
+    console.log('typed words: ', wordData);
     let sum = 0;
-    for (let i = 0; i < typedWords.length; i++) {
-        if (typedWords[i] === words[i]) {
-            sum += typedWords[i].length + 1;
+    for (let i = 0; i < wordData.length; i++) {
+        if (wordData[i].typedWord === wordData[i].word) {
+            sum += wordData[i].typedWord.length + 1;
         } else {
-            console.log(`mistyped word at index ${i}. typed word: ${typedWords[i]}. correct word: ${words[i]}`);
+            console.log(`mistyped word at index ${i}. typed word: ${wordData[i]}. correct word: ${wordData[i].word}`);
         }
     }
     console.log('correct characters: ', sum);
@@ -357,25 +338,18 @@ const WordComponent = ({ word, cssClass }: { word: string, cssClass: string }): 
     );
 }
 
-export interface WordComponentData {
-    id: number;
-    word: string;
-    cssClass: string;
-}
-/**
- * collects selected words into an array of span components
- * @param selectedWords the words chosen from the list for this type test
- */
-const getWordComponentList = (selectedWords: string[]): WordComponentData[] => {
-    const components = selectedWords.map((word: string, index: number) => {
+const getWordDataList = (selectedWords: string[]): WordData[] => {
+    const data: WordData[] = selectedWords.map((word: string, index: number) => {
         return {
             id: index,
             word: word,
+            typedWord: "",
+            incorrectAttempts: [],
             cssClass: ""
         }
     });
-    components[0] = { ...components[0], cssClass: "highlighted" };
-    return components;
+    data[0] = { ...data[0], cssClass: "highlighted" };
+    return data;
 }
 
 

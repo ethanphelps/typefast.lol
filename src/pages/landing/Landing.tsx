@@ -8,7 +8,7 @@ import { WordsSource, WordsSources } from '../../services/words/words.interface'
 import WordsService from '../../services/words/words-service';
 
 const config = getConfig();
-const LENGTH: FixedWordExerciseLength = FixedWordExerciseLengths.LONG;
+const LENGTH: FixedWordExerciseLength = FixedWordExerciseLengths.MEDIUM;
 const SOURCE: WordsSource = WordsSources.ENGLISH_BASIC;
 
 
