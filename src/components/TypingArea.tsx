@@ -18,6 +18,7 @@ interface TypingAreaProps {
 interface WordData {
     id: number;
     word: string;
+    charArray: string[]; // char array version of word to use for char highlighting
     typedWord: string;
     incorrectAttempts: []; 
     cssClass: string;
