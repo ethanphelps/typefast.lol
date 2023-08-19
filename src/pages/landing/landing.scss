@@ -93,8 +93,13 @@ body {
   background: colors.$accent-color;
 }
 
+.untyped {
+  color: colors.$accent-color;
+}
+
 .correct {
   color: colors.$correct-green;
+  // color: colors.$font-color;
 }
 
 .incorrect {

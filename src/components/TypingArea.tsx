@@ -3,6 +3,7 @@ import { ObjectValues, TypingMode } from '../models/models';
 import { FixedWordExerciseLength } from '../services/exercises/fixed-words-exercise.service';
 import { WordsSource } from '../services/words/words.interface';
 import WordsService from '../services/words/words-service';
+import WordComponent from './Word';
 
 const deleteInputTypes = ['deleteContentBackward', 'deleteWordBackward', 'deleteSoftLineBackward', 'deleteHardLineBackward'];
 
@@ -18,7 +19,8 @@ interface TypingAreaProps {
 interface WordData {
     id: number;
     word: string;
-    charArray: string[]; // char array version of word to use for char highlighting
+    wordCharArray: string[];
+    typedCharArray: string[]; // char array version of word to use for char highlighting
     typedWord: string;
     incorrectAttempts: []; 
     cssClass: string;
@@ -34,9 +36,14 @@ const TypingActions = {
     EXERCISE_COMPLETE: 'exercise-complete'
 } as const;
 type TypingAction = ObjectValues<typeof TypingActions>;
+// this may cause issues polluting state with non state fields in the reducer
+interface ActionPayload {
+    characterTyped: string;
+    inputValue: string;
+}
 interface DispatchInput {
     type: TypingAction;
-    payload?: Partial<ExerciseState>
+    payload?: Partial<ExerciseState> & Partial<ActionPayload>;
 }
 
 interface ExerciseState {
@@ -72,21 +79,43 @@ const reducer = (state: ExerciseState, action: DispatchInput): ExerciseState => 
                 endTime: null
             }
         case(TypingActions.TYPING_STARTED):
+            console.debug('Initial states:', state);
             return {
                 ...state,
                 typingStarted: true,
                 startTime: Date.now()
             }
-        case(TypingActions.CHARACTER_TYPED):
+        case(TypingActions.CHARACTER_TYPED): {
+            const inputValue = action.payload.typedWord;
+            const characterTyped = inputValue[inputValue.length - 1];
+            let newWordData;
+            if(characterTyped !== " ") {
+                const newWordData = [...state.wordData];
+                newWordData[state.currentWord].typedCharArray.push(characterTyped);
+                // console.debug('new word data: ', newWordData);
+            }
             return {
                 ...state,
                 ...action.payload,
+                wordData: newWordData ? newWordData : state.wordData
             }
-        case(TypingActions.CHARACTER_DELETED):
+        }
+        // TODO: need to get this to handle ctrl-delete for deleting whole words and cmd-delete for deleting whole lines
+        case(TypingActions.CHARACTER_DELETED): {
+            const newWordData = [...state.wordData];
+            const numCharsDeleted = getDeletedCharacters(action.payload.inputValue, state.wordData[state.currentWord].typedCharArray);
+            const deletedChars = state.wordData[state.currentWord].typedCharArray.slice(-numCharsDeleted);
+            console.debug('deleted chars: ', deletedChars);
+            const length = state.wordData[state.currentWord].typedCharArray.length;
+            newWordData[state.currentWord].typedCharArray = state.wordData[state.currentWord].typedCharArray.slice(0, length - numCharsDeleted);
+            console.debug('new char array: ', newWordData[state.currentWord].typedCharArray);
+            // console.debug('character deleted! new word data: ', newWordData);
             return {
                 ...state,
                 ...action.payload,
+                wordData: newWordData
             }
+        }
         case(TypingActions.WORD_COMPLETE):
             return {
                 ...state,
@@ -173,9 +202,17 @@ export const TypingArea = ({
     // TODO: change this logic to handle going backwards to other words
     const handleDeletion = (inputValue: string) => {
         console.debug('DELETE');
+        // TODO: handle going backwards to other words here
         if (state.typedWord.length === 0) {
             return;
         }
+        dispatch({ 
+            type: TypingActions.CHARACTER_DELETED, 
+            payload: { 
+                typedWord: inputValue,
+                inputClass: getInputClass(state.words[state.currentWord], inputValue)
+            }
+        });
     }
 
     // TODO: move this into reducer
@@ -238,6 +275,11 @@ export const TypingArea = ({
         }
         const inputValue = (event.target as HTMLInputElement).value;
 
+        if (isDelete(event, inputValue)) {
+            handleDeletion(inputValue);
+            return; // should we return here?
+        }
+
         dispatch({ 
             type: TypingActions.CHARACTER_TYPED, 
             payload: { 
@@ -246,12 +288,7 @@ export const TypingArea = ({
             }
         });
 
-        if (isDelete(event, inputValue)) {
-            handleDeletion(inputValue);
-            return; // should we return here?
-        }
-        const characterTyped = isDelete(event, inputValue) ? null : inputValue[inputValue.length - 1];
-
+        const characterTyped = inputValue[inputValue.length - 1];
         if (shouldMoveToNextWord(inputValue, characterTyped)) {
             handleWordComplete(inputValue.trim());
         }
@@ -261,12 +298,12 @@ export const TypingArea = ({
         <div className="typing-container">
             <article className="typing-display">
                 {
-                    state.words
+                    state.wordData
                         ? state.wordData.map((data: WordData) => {
                             return <WordComponent
-                                word={data.word}
+                                word={data.wordCharArray}
+                                typedWord={data.typedCharArray}
                                 key={data.id}
-                                cssClass={data.cssClass}
                             />
                         })
                         : null
@@ -287,6 +324,9 @@ export const TypingArea = ({
     );
 }
 
+const getDeletedCharacters = (inputValue: string, typedCharArray: string[]): number => {
+    return inputValue.length < typedCharArray.length ? typedCharArray.length - inputValue.length : 0;
+}
 
 // TODO: add force correctness mode, but that would just affect the overall correctness, not whether you can move to the next word or not
 const shouldMoveToNextWord = (typedWord: string, keyPressed: string): boolean => {
@@ -297,6 +337,7 @@ const getTotalCharacters = (words: string[]): number => {
     return words.reduce((sum: number, word: string) => sum + word.length + 1, 0);
 }
 
+// TODO: change to use wordCharArray and typedCharArray instead of word and typed word 
 const getCorrectCharacters = (wordData: WordData[]): number => {
     console.log('typed words: ', wordData);
     let sum = 0;
@@ -313,6 +354,7 @@ const getCorrectCharacters = (wordData: WordData[]): number => {
 
 /**
  * returns incremental correctness of the word as user is typing
+ * TODO: use wordCharArray and typedCharArray instead of word and typed word
  */
 const wordIsCorrect = (targetWord: string, typedWord: string) => {
     if (typedWord.length < targetWord.length) {
@@ -330,20 +372,13 @@ const getInputClass = (word: string, typedWord: string): string => {
     return wordIsCorrect(word, typedWord) ? "typing-input" : "typing-input incorrect-input";
 }
 
-const WordComponent = ({ word, cssClass }: { word: string, cssClass: string }): React.ReactElement => {
-    return (
-        <>
-            <span className={cssClass}>{word}</span>
-            <span> </span>
-        </>
-    );
-}
-
 const getWordDataList = (selectedWords: string[]): WordData[] => {
     const data: WordData[] = selectedWords.map((word: string, index: number) => {
         return {
             id: index,
             word: word,
+            wordCharArray: word.split(''),
+            typedCharArray: [],
             typedWord: "",
             incorrectAttempts: [],
             cssClass: ""
@@ -356,10 +391,6 @@ const getWordDataList = (selectedWords: string[]): WordData[] => {
 
 /**
  * WPM = characters per min / 5
- * @param startTime 
- * @param endTime 
- * @param wordCount 
- * @returns 
  */
 const calculateWpm = (startTime: number, endTime: number, correctCharacters: number, incorrectCharacters: number) => {
     console.log(`start time: ${startTime}, end time: ${endTime}`);
