@@ -89,12 +89,53 @@ body {
   font-size: 32px;
 }
 
+@keyframes blink {
+  0% {
+    opacity: 0;
+  }
+  49% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes flash { 
+  0% { 
+    // background-color: colors.$accent-color;
+    // background-color: rgb(42, 42, 53, 1);
+    background-color: rgb(228, 228, 228, 0.4);
+    // opacity: 1;
+  }
+  50% {
+    // background-color: colors.$accent-color;
+    // background-color: rgb(42, 42, 53, 0);
+    background-color: rgb(228, 228, 228, 0);
+    // opacity: 0;
+  }
+  to {
+    // background-color: colors.$github-dark;
+    // background-color: rgb(42, 42, 53, 1);
+    background-color: rgb(228, 228, 228, 0.4);
+    // opacity: 1;
+  }
+}
+
 .highlighted {
-  background: colors.$accent-color;
+  // color: colors.$accent-color;
+  color: colors.$font-color;
+  // background: colors.$accent-color;
+  // background: colors.$font-color;
+  animation: flash 1s ease-in-out infinite;
 }
 
 .untyped {
-  color: colors.$accent-color;
+  // color: colors.$accent-color;
+  color: colors.$font-color;
 }
 
 .correct {

@@ -16,12 +16,12 @@ interface TypingAreaProps {
 }
 
 // should all this state be in one interface? would this trigger unnecessary re-renders?
+// TODO: remove 'word' from state and rely on wordCharArray instead
 interface WordData {
     id: number;
-    word: string;
+    word: string; 
     wordCharArray: string[];
     typedCharArray: string[]; // char array version of word to use for char highlighting
-    typedWord: string;
     incorrectAttempts: []; 
     cssClass: string;
 }
@@ -50,6 +50,7 @@ interface ExerciseState {
     words: string[];
     wordData: WordData[];
     currentWord: number;
+    cursor: number;
     inputClass: string;
     typingStarted: boolean;
     correctCharacters: number;
@@ -69,6 +70,7 @@ const reducer = (state: ExerciseState, action: DispatchInput): ExerciseState => 
                 ...state,
                 ...action.payload,
                 currentWord: 0,
+                cursor: 0,
                 inputClass: "typing-input",
                 typingStarted: false,
                 correctCharacters: 0,
@@ -190,6 +192,7 @@ export const TypingArea = ({
                 words: wordsService.getRandomizedWords(), 
                 wordData: getWordDataList(wordsService.getRandomizedWords()),
                 currentWord: 0,
+                cursor: 0,
                 inputClass: "typing-input",
                 typingStarted: false,
                 correctCharacters: 0,
@@ -294,10 +297,12 @@ export const TypingArea = ({
             <article className="typing-display">
                 {
                     state.wordData
-                        ? state.wordData.map((data: WordData) => {
+                        ? state.wordData.map((data: WordData, index: number) => {
                             return <WordComponent
                                 word={data.wordCharArray}
                                 typedWord={data.typedCharArray}
+                                wordIndex={data.id}
+                                currentWord={state.currentWord}
                                 key={data.id}
                             />
                         })
@@ -389,7 +394,6 @@ const getWordDataList = (selectedWords: string[]): WordData[] => {
             word: word,
             wordCharArray: word.split(''),
             typedCharArray: [],
-            typedWord: "",
             incorrectAttempts: [],
             cssClass: ""
         }

@@ -7,12 +7,17 @@ import React from 'react';
  * TODO: figure out how to only re-render the word being typed, instead of every word in the words list. If the words list is long, this will be innefficient
  * (could useMemo help with this?)
 */
-const WordComponent = ({ word, typedWord }: { word: string[], typedWord: string[] }): React.ReactElement => {
+const WordComponent = ({ word, typedWord, wordIndex, currentWord }: { word: string[], typedWord: string[], wordIndex: number, currentWord: number }): React.ReactElement => {
     console.log("WordComponent rendered");
     let displayedWord = word;
     if(typedWord.length > word.length) {
         displayedWord = [...word, ...typedWord.slice(word.length - typedWord.length)];
     }
+    let spaceClass = null;
+    if(currentWord === wordIndex && typedWord.length >= word.length) {
+        spaceClass = "highlighted";
+    }
+    
     return (
         <>
             {
@@ -21,13 +26,16 @@ const WordComponent = ({ word, typedWord }: { word: string[], typedWord: string[
                     if(index < typedWord.length) {
                         cssClass = typedWord[index] === char ? "correct" : "incorrect"
                     }
+                    if(currentWord === wordIndex && index === typedWord.length) {
+                        cssClass = "highlighted";
+                    }
                     if(index >= word.length) {
                         cssClass = "incorrect";
                     }
                     return <span className={cssClass} key={index}>{char}</span> // TODO: move comparison to reducer
                 })
             }
-            <span> </span>
+            <span className={spaceClass}> </span>
         </>
     );
 }
