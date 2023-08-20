@@ -50,7 +50,6 @@ interface ExerciseState {
     words: string[];
     wordData: WordData[];
     currentWord: number;
-    typedWord: string;
     inputClass: string;
     typingStarted: boolean;
     correctCharacters: number;
@@ -70,7 +69,6 @@ const reducer = (state: ExerciseState, action: DispatchInput): ExerciseState => 
                 ...state,
                 ...action.payload,
                 currentWord: 0,
-                typedWord: "",
                 inputClass: "typing-input",
                 typingStarted: false,
                 correctCharacters: 0,
@@ -86,13 +84,13 @@ const reducer = (state: ExerciseState, action: DispatchInput): ExerciseState => 
                 startTime: Date.now()
             }
         case(TypingActions.CHARACTER_TYPED): {
-            const inputValue = action.payload.typedWord;
+            const inputValue = action.payload.inputValue;
             const characterTyped = inputValue[inputValue.length - 1];
             let newWordData;
             if(characterTyped !== " ") {
-                const newWordData = [...state.wordData];
+                newWordData = [...state.wordData];
                 newWordData[state.currentWord].typedCharArray.push(characterTyped);
-                // console.debug('new word data: ', newWordData);
+                console.debug('new word data: ', newWordData);
             }
             return {
                 ...state,
@@ -104,7 +102,7 @@ const reducer = (state: ExerciseState, action: DispatchInput): ExerciseState => 
         case(TypingActions.CHARACTER_DELETED): {
             const newWordData = [...state.wordData];
             const numCharsDeleted = getDeletedCharacters(action.payload.inputValue, state.wordData[state.currentWord].typedCharArray);
-            const deletedChars = state.wordData[state.currentWord].typedCharArray.slice(-numCharsDeleted);
+            const deletedChars = typedWord(state).slice(-numCharsDeleted);
             console.debug('deleted chars: ', deletedChars);
             const length = state.wordData[state.currentWord].typedCharArray.length;
             newWordData[state.currentWord].typedCharArray = state.wordData[state.currentWord].typedCharArray.slice(0, length - numCharsDeleted);
@@ -117,17 +115,42 @@ const reducer = (state: ExerciseState, action: DispatchInput): ExerciseState => 
             }
         }
         case(TypingActions.WORD_COMPLETE):
+            const correct = action.payload.inputValue === state.words[state.currentWord];
+            if (correct) {
+                console.log('word was typed correctly!');
+            } else {
+                console.log(`word was typed incorrectly! word should have been: ${state.words[state.currentWord]}. word typed: ${typedWord(state)}`);
+            }
+            const newWordData = [...state.wordData];
+            const newClassName = correct ? "correct" : "incorrect";
+            let updatedTypedCharArray = state.wordData[state.currentWord].typedCharArray;
+            if(typedWord(state).length < state.wordData[state.currentWord].word.length) {
+                let spaces = state.wordData[state.currentWord].wordCharArray
+                    .slice(typedWord(state).length - state.wordData[state.currentWord].word.length)
+                    .map((char: string) => ' ');
+                updatedTypedCharArray = [...state.wordData[state.currentWord].typedCharArray, ...spaces];
+            }
+            newWordData[state.currentWord] = {
+                ...newWordData[state.currentWord],
+                typedCharArray: updatedTypedCharArray,
+                cssClass: newClassName
+            }
+            if (state.currentWord + 1 < state.wordData.length) {
+                newWordData[state.currentWord + 1] = {
+                    ...newWordData[state.currentWord + 1],
+                    cssClass: "highlighted"
+                }
+            } 
             return {
                 ...state,
                 ...action.payload,
-                typedWord: "",
+                wordData: newWordData,
                 currentWord: state.currentWord + 1,
                 inputClass: "typing-input"
             }
         case(TypingActions.WORD_DELETED):
             return {
                 ...state,
-                ...action.payload,
             }
         case(TypingActions.EXERCISE_COMPLETE):
             console.debug('final states: ', state);
@@ -167,7 +190,6 @@ export const TypingArea = ({
                 words: wordsService.getRandomizedWords(), 
                 wordData: getWordDataList(wordsService.getRandomizedWords()),
                 currentWord: 0,
-                typedWord: "",
                 inputClass: "typing-input",
                 typingStarted: false,
                 correctCharacters: 0,
@@ -196,63 +218,35 @@ export const TypingArea = ({
     }
 
     const isDelete = (event: React.ChangeEvent, inputValue: string): boolean => {
-        return deleteInputTypes.includes((event.nativeEvent as InputEvent).inputType) || inputValue.length < state.typedWord.length;
+        return deleteInputTypes.includes((event.nativeEvent as InputEvent).inputType) || inputValue.length < state.wordData[state.currentWord].typedCharArray.length;
     }
 
     // TODO: change this logic to handle going backwards to other words
     const handleDeletion = (inputValue: string) => {
         console.debug('DELETE');
         // TODO: handle going backwards to other words here
-        if (state.typedWord.length === 0) {
+        if (typedWord(state).length === 0) {
             return;
         }
         dispatch({ 
             type: TypingActions.CHARACTER_DELETED, 
             payload: { 
-                typedWord: inputValue,
+                inputValue: inputValue,
                 inputClass: getInputClass(state.words[state.currentWord], inputValue)
             }
         });
     }
 
-    // TODO: move this into reducer
-    const updateWordData = (inputValue: string, correct: boolean, wordData: WordData[]) => {
-        const newWordData = [...wordData];
-        const newClassName = correct ? "correct" : "incorrect";
-        newWordData[state.currentWord] = {
-            ...newWordData[state.currentWord],
-            typedWord: inputValue,
-            cssClass: newClassName
-        }
-        if (state.currentWord + 1 < wordData.length) {
-            newWordData[state.currentWord + 1] = {
-                ...newWordData[state.currentWord + 1],
-                cssClass: "highlighted"
-            }
-        } 
-        return newWordData;
-    }
-
     const handleWordComplete = (inputValue: string) => {
-        const correct = inputValue === state.words[state.currentWord];
-        if (correct) {
-            console.log('word was typed correctly!');
-        } else {
-            console.log(`word was typed incorrectly! word should have been: ${state.words[state.currentWord]}. word typed: ${state.typedWord}`);
-        }
         dispatch({
             type: TypingActions.WORD_COMPLETE, 
-            payload: {
-                // typedWords: updateTypedWords(inputValue),
-                // wordComponents: setNextHighlightedWord(updateWordComponents(correct)),
-                wordData: updateWordData(inputValue, correct, state.wordData),
-            }
+            payload: { inputValue: inputValue }
         })
 
         if (state.currentWord + 1 >= state.words.length) {
             // TODO: extract into own function for finalizing type test 
-            const finalWordData = [...state.wordData]; // need local variable for final typed words since typedWords state is not updated until next render is complete
-            finalWordData[state.currentWord].typedWord = inputValue;
+            const finalWordData: WordData[] = [...state.wordData]; // need local variable for final typed words since typedWords state is not updated until next render is complete
+            finalWordData[state.currentWord].typedCharArray = inputValue.split('');
             const totalCharacters = getTotalCharacters(finalWordData.map((wordData) => wordData.word));
             const correctCharacters = getCorrectCharacters(finalWordData);
             console.log(`number of words: ${state.words.length}. current word: ${state.currentWord + 1}`);
@@ -271,11 +265,12 @@ export const TypingArea = ({
             return;
         }
         if (!state.typingStarted) {
-            dispatch({type: TypingActions.TYPING_STARTED})
+            dispatch({type: TypingActions.TYPING_STARTED}); // TODO: only trigger typing started if the character typed is a letter/number/symbol
         }
         const inputValue = (event.target as HTMLInputElement).value;
 
         if (isDelete(event, inputValue)) {
+            console.debug('deletion: ', inputValue);
             handleDeletion(inputValue);
             return; // should we return here?
         }
@@ -283,7 +278,7 @@ export const TypingArea = ({
         dispatch({ 
             type: TypingActions.CHARACTER_TYPED, 
             payload: { 
-                typedWord: inputValue,
+                inputValue: inputValue,
                 inputClass: getInputClass(state.words[state.currentWord], inputValue)
             }
         });
@@ -312,7 +307,7 @@ export const TypingArea = ({
             <div className="input-row">
                 <input
                     type="text"
-                    value={state.typedWord}
+                    value={state.wordData[state.currentWord]?.typedCharArray.join('') || ""}
                     className={state.inputClass}
                     onChange={handleInput}
                     ref={inputRef}
@@ -322,6 +317,10 @@ export const TypingArea = ({
             </div>
         </div>
     );
+}
+
+const typedWord = (state: ExerciseState): string => {
+    return state.wordData[state.currentWord].typedCharArray.join('');
 }
 
 const getDeletedCharacters = (inputValue: string, typedCharArray: string[]): number => {
@@ -337,19 +336,30 @@ const getTotalCharacters = (words: string[]): number => {
     return words.reduce((sum: number, word: string) => sum + word.length + 1, 0);
 }
 
-// TODO: change to use wordCharArray and typedCharArray instead of word and typed word 
 const getCorrectCharacters = (wordData: WordData[]): number => {
     console.log('typed words: ', wordData);
     let sum = 0;
     for (let i = 0; i < wordData.length; i++) {
-        if (wordData[i].typedWord === wordData[i].word) {
-            sum += wordData[i].typedWord.length + 1;
+        if (wordTypedCorrectly(wordData[i].wordCharArray, wordData[i].typedCharArray)) {
+            sum += wordData[i].typedCharArray.length + 1;
         } else {
             console.log(`mistyped word at index ${i}. typed word: ${wordData[i]}. correct word: ${wordData[i].word}`);
         }
     }
     console.log('correct characters: ', sum);
     return sum;
+}
+
+const wordTypedCorrectly = (word: string[], typedWord: string[]): boolean => {
+    if(word.length !== typedWord.length) {
+        return false;
+    }
+    word.forEach((character: string, index: number) => {
+        if (character !== typedWord[index]) {
+            return false;
+        }
+    });
+    return true;
 }
 
 /**
@@ -387,7 +397,6 @@ const getWordDataList = (selectedWords: string[]): WordData[] => {
     data[0] = { ...data[0], cssClass: "highlighted" };
     return data;
 }
-
 
 /**
  * WPM = characters per min / 5
