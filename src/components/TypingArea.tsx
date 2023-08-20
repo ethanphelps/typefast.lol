@@ -1,6 +1,5 @@
 import React, { useEffect, useState, Suspense, ReactHTML, useReducer, useMemo, useRef } from 'react';
-import { ObjectValues, TypingMode } from '../models/models';
-import { FixedWordExerciseLength } from '../services/exercises/fixed-words-exercise.service';
+import { ObjectValues, TypingMode, FixedWordExerciseLength } from '../models/models';
 import { WordsSource } from '../services/words/words.interface';
 import WordsService from '../services/words/words-service';
 import WordComponent from './Word';

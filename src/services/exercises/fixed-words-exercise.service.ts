@@ -1,15 +1,15 @@
 // import { WordComponentData } from "../../components/TypingArea";
 // import WordsService from "../words/words-service";
 // import { TypingExercise } from "./typing-exercise.abstract.service";
-export const FixedWordExerciseLengths = {
-    SHORT: 10,
-    MEDIUM: 25,
-    LONG: 50,
-    EXTRA_LONG: 100,
-    SUPER_LONG: 250,
-} as const;
-type ObjectValues<T> = T[keyof T];
-export type FixedWordExerciseLength = ObjectValues<typeof FixedWordExerciseLengths>;
+// export const FixedWordExerciseLengths = {
+//     SHORT: 10,
+//     MEDIUM: 25,
+//     LONG: 50,
+//     EXTRA_LONG: 100,
+//     SUPER_LONG: 250,
+// } as const;
+// type ObjectValues<T> = T[keyof T];
+// export type FixedWordExerciseLength = ObjectValues<typeof FixedWordExerciseLengths>;
 
 // export class FixedWordsExercise extends TypingExercise {
 //     constructor(

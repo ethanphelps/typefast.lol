@@ -3,9 +3,9 @@ import './landing.scss';
 import { getConfig } from '../../config';
 import { TypingArea } from '../../components/TypingArea';
 import { TypingModes } from '../../models/models';
-import { FixedWordExerciseLength, FixedWordExerciseLengths } from '../../services/exercises/fixed-words-exercise.service';
+import { FixedWordExerciseLength, FixedWordExerciseLengths } from '../../models/models';
 import { WordsSource, WordsSources } from '../../services/words/words.interface';
-import WordsService from '../../services/words/words-service';
+import { ModeMenu } from '../../components/ModeMenu';
 
 const config = getConfig();
 const LENGTH: FixedWordExerciseLength = FixedWordExerciseLengths.MEDIUM;
@@ -36,13 +36,16 @@ export const Landing: React.FC = (): React.ReactElement => {
         <div className="landing-container">
             <Header />
             <div className="body-container">
-                <TypingArea
-                    setWpm={setWpm}
-                    setAccuracy={setAccuracy}
-                    mode={TypingModes.COUNT}
-                    fixedLength={LENGTH}
-                    source={source}
-                />
+                <div id="center-area">
+                    <ModeMenu />
+                    <TypingArea
+                        setWpm={setWpm}
+                        setAccuracy={setAccuracy}
+                        mode={TypingModes.FIXED}
+                        fixedLength={LENGTH}
+                        source={source}
+                    />
+                </div>
             </div>
         </div>
     );

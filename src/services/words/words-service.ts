@@ -1,6 +1,6 @@
 import { WordsSource } from './words.interface';
 import Words from './basic-words.json';
-import { FixedWordExerciseLength } from '../exercises/fixed-words-exercise.service';
+import { FixedWordExerciseLength } from '../../models/models';
 
 // TODO: maybe make this just helper functions instead of a class
 /**
