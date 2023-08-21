@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import './landing.scss';
 import { getConfig } from '../../config';
 import { TypingArea } from '../../components/TypingArea';
-import { TypingModes } from '../../models/models';
+import { ObjectValues, TypingMode, TypingModes } from '../../models/models';
 import { FixedWordExerciseLength, FixedWordExerciseLengths } from '../../models/models';
 import { WordsSource, WordsSources } from '../../services/words/words.interface';
 import { ModeMenu } from '../../components/ModeMenu';
@@ -19,6 +19,37 @@ const Header = ({ }): React.ReactElement => {
         </header>
     );
 };
+
+const ModeActions = {
+    RESET: 'reset',
+    TYPING_STARTED: 'typing-started',
+    WORD_COMPLETE: 'word-complete',
+    WORD_DELETED: 'word-deleted',
+    CHARACTER_TYPED: 'character-typed',
+    CHARACTER_DELETED: 'character-deleted', // may be superfluous 
+    EXERCISE_COMPLETE: 'exercise-complete'
+} as const;
+type ModeAction = ObjectValues<typeof ModeActions>;
+// this may cause issues polluting state with non state fields in the reducer
+interface ActionPayload {
+    characterTyped: string;
+    inputValue: string;
+}
+interface DispatchInput {
+    type: ModeAction;
+    payload?: Partial<ModeState> & Partial<ActionPayload>;
+}
+export interface ModeState {
+    mode: TypingMode;
+    length: FixedWordExerciseLength;
+    source: WordsSource;
+    punctuation: boolean;
+    numbers: boolean;
+    forceCorrections: boolean;
+}
+const reducer = (state: ModeState, dispatch: DispatchInput): ModeState => {
+    return state;
+}
 
 
 // todo: see if words list should be passed into TypingArea component?

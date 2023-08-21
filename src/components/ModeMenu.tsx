@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import '../pages/landing/landing.scss';
-import { TypingMode, TypingModes } from '../models/models';
+import { ModeOptions, OptionCategories, OptionCategory, OptionDisplayValues, OptionValues, TypingMode, TypingModes } from '../models/models';
 
 // const config = getConfig();
 // const LENGTH: FixedWordExerciseLength = FixedWordExerciseLengths.MEDIUM;
@@ -25,17 +25,35 @@ const ModeRow = ({ modeName, currentMode, setMode: setModeName }: ModeRowProps )
 };
 
 
-// todo: see if words list should be passed into TypingArea component?
+interface ModeOptionProps {
+    category: OptionCategory;
+    values: OptionDisplayValues[];
+    // currentMode: TypingMode;
+}
+const ModeOption = ({ category, values, }: ModeOptionProps): React.ReactElement => {
+    return (
+        <div className="mode-option-row">
+            <div className="mode-option-label">{category}:</div>
+            <div className="mode-option-value-list">
+                {
+                    values.map((value: OptionDisplayValues) => <div className="mode-option-value">{value}</div>)
+                }
+            </div>
+        </div>
+    );
+};
+
 
 /**
  * Mini menu for selecting options specific to a mode
+ * TODO: track state for selected options and transmit to TypingArea
  */
 export const ModeMenu: React.FC = (): React.ReactElement => {
     const [mode, setMode] = useState<TypingMode>(TypingModes.FIXED); // TODO: pass this in from Landing
 
     return (
         <div className="mode-menu-container">
-            <div id="mode-selector">
+            <section id="mode-selector">
                 <header id="mode-header">mode</header>
                 <section id="mode-list">
                     {
@@ -50,9 +68,36 @@ export const ModeMenu: React.FC = (): React.ReactElement => {
                         })
                     }
                 </section>
-            </div>
+            </section>
             <div id="mode-menu-divider"></div>
-            <div id="mode-options">hjkl</div>
+            <section id="mode-options">
+                {/* <ModeOption 
+                    category={OptionCategories.COUNT}
+                    values={OptionValues[OptionCategories.COUNT]}
+                />
+                <ModeOption 
+                    category={OptionCategories.PUNCTUATION}
+                    values={OptionValues[OptionCategories.PUNCTUATION]}
+                />
+                <ModeOption 
+                    category={OptionCategories.NUMBERS}
+                    values={OptionValues[OptionCategories.NUMBERS]}
+                />
+                <ModeOption 
+                    category={OptionCategories.WORDS_SOURCE}
+                    values={OptionValues[OptionCategories.WORDS_SOURCE]}
+                /> */}
+                {
+                    ModeOptions[mode].map((category: OptionCategory) => {
+                        return (
+                            <ModeOption 
+                                category={category}
+                                values={OptionValues[category]}
+                            />
+                        );
+                    })
+                }
+            </section>
         </div>
     );
 };

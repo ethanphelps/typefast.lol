@@ -87,10 +87,33 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  align-items: center;
+  // align-items: center;
   row-gap: 10px;
 }
 
+.mode-option-row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+}
+
+.mode-option-label {
+  padding-right: 10px;
+}
+
+.mode-option-value-list {
+  display: flex;
+  row-gap: 10px;
+}
+
+.mode-option-value {
+  border: none;
+  border-radius: 0.4rem;
+  padding: 0 10px 0 10px;
+  transition: background-color 0.15s ease-in-out;
+}
+.mode-option-value:hover {
+  background-color: colors.$accent-color;
+}
 
 .typing-container {
   display: flex;
