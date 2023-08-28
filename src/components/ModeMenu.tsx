@@ -1,23 +1,20 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useReducer, useState } from 'react';
 import '../pages/landing/landing.scss';
-import { ModeOptions, OptionCategories, OptionCategory, OptionDisplayValues, OptionValues, TypingMode, TypingModes } from '../models/models';
-
-// const config = getConfig();
-// const LENGTH: FixedWordExerciseLength = FixedWordExerciseLengths.MEDIUM;
-// const SOURCE: WordsSource = WordsSources.ENGLISH_BASIC;
+import { ModeOptions, OptionCategory, OptionCategoryDisplay, OptionCategoryValue, OptionItemConfiguration, OptionItemValue, OptionValuesByCategory, StatePropertiesByCategory, TypingMode, TypingModes } from '../models/models';
+import { ModeActions, ModeState, ModeDispatchInput, ModeActionsByCategory } from '../reducers/mode-reducer';
 
 
 interface ModeRowProps {
     modeName: TypingMode;
     currentMode: TypingMode;
-    setMode: React.Dispatch<React.SetStateAction<TypingMode>>;
+    dispatch: React.Dispatch<React.ReducerAction<React.Reducer<ModeState, ModeDispatchInput>>>
 }
-const ModeRow = ({ modeName, currentMode, setMode: setModeName }: ModeRowProps ): React.ReactElement => {
+const ModeRow = ({ modeName, currentMode, dispatch }: ModeRowProps): React.ReactElement => {
     const cssClass = modeName === currentMode ? 'mode-item selected' : 'mode-item';
     return (
-        <header 
+        <header
             className={cssClass}
-            onClick={() => setModeName(modeName)}
+            onClick={() => dispatch({ type: ModeActions.MODE_SET, payload: { mode: modeName } })}
         >
             <span>{modeName}</span>
         </header>
@@ -25,18 +22,62 @@ const ModeRow = ({ modeName, currentMode, setMode: setModeName }: ModeRowProps )
 };
 
 
-interface ModeOptionProps {
-    category: OptionCategory;
-    values: OptionDisplayValues[];
-    // currentMode: TypingMode;
+const ModeOption = (
+    { item, selectedItem, category, state, dispatch }:
+        {
+            item: OptionItemConfiguration;
+            selectedItem: OptionItemValue; // may need to change this to OptionItemConfiguration and change ModeState to track configurations instead of just values..
+            category: OptionCategory;
+            state: ModeState;
+            dispatch: React.Dispatch<React.ReducerAction<React.Reducer<ModeState, ModeDispatchInput>>>
+        }
+): React.ReactElement => {
+    const cssClass = item.value === selectedItem ? 'mode-item selected' : 'mode-item';
+    return (
+        <div
+            className={cssClass}
+            onClick={() => dispatch({
+                    type: ModeActionsByCategory[category.value],
+                    payload: {
+                        [StatePropertiesByCategory[category.value]]: item.value
+                    }
+            })} // need to map current category to a category dispatch. pass selected item via payload
+        >
+            {item.display}
+        </div>
+    )
 }
-const ModeOption = ({ category, values, }: ModeOptionProps): React.ReactElement => {
+
+
+const getModeOptionStateByCategory = (state: ModeState, category: OptionCategoryValue): Exclude<OptionItemValue, TypingMode> => {
+    return state[StatePropertiesByCategory[category]] as Exclude<OptionItemValue, TypingMode>;
+}
+
+
+interface ModeOptionRowProps {
+    category: OptionCategory;
+    optionItems: OptionItemConfiguration[];
+    state: ModeState;
+    dispatch: React.Dispatch<React.ReducerAction<React.Reducer<ModeState, ModeDispatchInput>>>;
+}
+const ModeOptionRow = ({ category, optionItems, state, dispatch }: ModeOptionRowProps): React.ReactElement => {
     return (
         <div className="mode-option-row">
-            <div className="mode-option-label">{category}:</div>
+            <div className="mode-option-label">{category.display}:</div>
             <div className="mode-option-value-list">
                 {
-                    values.map((value: OptionDisplayValues) => <div className="mode-option-value">{value}</div>)
+                    optionItems.map((optionItem: OptionItemConfiguration, index: number) => {
+                        return (
+                            <ModeOption
+                                item={optionItem}
+                                selectedItem={getModeOptionStateByCategory(state, category.value)} // map current category to a state value for current selected item from that category
+                                category={category}
+                                state={state}
+                                dispatch={dispatch}
+                                key={index}
+                            />
+                        )
+                    })
                 }
             </div>
         </div>
@@ -48,21 +89,24 @@ const ModeOption = ({ category, values, }: ModeOptionProps): React.ReactElement 
  * Mini menu for selecting options specific to a mode
  * TODO: track state for selected options and transmit to TypingArea
  */
-export const ModeMenu: React.FC = (): React.ReactElement => {
-    const [mode, setMode] = useState<TypingMode>(TypingModes.FIXED); // TODO: pass this in from Landing
-
+interface ModeMenuProps {
+    state: ModeState,
+    dispatch: React.Dispatch<React.ReducerAction<React.Reducer<ModeState, ModeDispatchInput>>>
+}
+export const ModeMenu = ({ state, dispatch }: ModeMenuProps): React.ReactElement => {
     return (
         <div className="mode-menu-container">
             <section id="mode-selector">
                 <header id="mode-header">mode</header>
                 <section id="mode-list">
                     {
-                        Object.values(TypingModes).map((modeName: TypingMode) => {
+                        Object.values(TypingModes).map((modeName: TypingMode, index: number) => {
                             return (
-                                <ModeRow 
-                                    modeName={modeName} 
-                                    currentMode={mode} 
-                                    setMode={setMode}
+                                <ModeRow
+                                    modeName={modeName}
+                                    currentMode={state.mode}
+                                    dispatch={dispatch}
+                                    key={index}
                                 />
                             );
                         })
@@ -71,28 +115,15 @@ export const ModeMenu: React.FC = (): React.ReactElement => {
             </section>
             <div id="mode-menu-divider"></div>
             <section id="mode-options">
-                {/* <ModeOption 
-                    category={OptionCategories.COUNT}
-                    values={OptionValues[OptionCategories.COUNT]}
-                />
-                <ModeOption 
-                    category={OptionCategories.PUNCTUATION}
-                    values={OptionValues[OptionCategories.PUNCTUATION]}
-                />
-                <ModeOption 
-                    category={OptionCategories.NUMBERS}
-                    values={OptionValues[OptionCategories.NUMBERS]}
-                />
-                <ModeOption 
-                    category={OptionCategories.WORDS_SOURCE}
-                    values={OptionValues[OptionCategories.WORDS_SOURCE]}
-                /> */}
                 {
-                    ModeOptions[mode].map((category: OptionCategory) => {
+                    ModeOptions[state.mode].map((category: OptionCategory, index: number) => {
                         return (
-                            <ModeOption 
+                            <ModeOptionRow
                                 category={category}
-                                values={OptionValues[category]}
+                                optionItems={OptionValuesByCategory[category.value]}
+                                state={state}
+                                dispatch={dispatch}
+                                key={index}
                             />
                         );
                     })

@@ -3,16 +3,10 @@ import { ObjectValues, TypingMode, FixedWordExerciseLength } from '../models/mod
 import { WordsSource } from '../services/words/words.interface';
 import WordsService from '../services/words/words-service';
 import WordComponent from './Word';
+import { ModeState } from '../reducers/mode-reducer';
 
 const deleteInputTypes = ['deleteContentBackward', 'deleteWordBackward', 'deleteSoftLineBackward', 'deleteHardLineBackward'];
 
-interface TypingAreaProps {
-    setWpm: React.Dispatch<React.SetStateAction<number>>;
-    setAccuracy: React.Dispatch<React.SetStateAction<number>>;
-    mode: TypingMode;
-    fixedLength: FixedWordExerciseLength;
-    source: WordsSource;
-}
 
 // should all this state be in one interface? would this trigger unnecessary re-renders?
 // TODO: remove 'word' from state and rely on wordCharArray instead
@@ -62,7 +56,7 @@ interface ExerciseState {
  * new words should be passed into the reducer via payload sice typedWords and wordComponents are derived from words
  * TODO: reduce reliance on payload and set states inside reducer when possible
  */
-const reducer = (state: ExerciseState, action: DispatchInput): ExerciseState => {
+export const reducer = (state: ExerciseState, action: DispatchInput): ExerciseState => {
     switch(action.type) {
         case(TypingActions.RESET):
             return {
@@ -166,22 +160,33 @@ const reducer = (state: ExerciseState, action: DispatchInput): ExerciseState => 
     }
 }
 
+
+interface TypingAreaProps {
+    setWpm: React.Dispatch<React.SetStateAction<number>>;
+    setAccuracy: React.Dispatch<React.SetStateAction<number>>;
+    // mode: TypingMode;
+    // fixedLength: FixedWordExerciseLength;
+    // source: WordsSource;
+    modeState: ModeState
+}
+// should mode state be passed together as one prop value or as individual prop values?
 export const TypingArea = ({
     setWpm,
     setAccuracy,
-    mode,
-    fixedLength,
-    source
+    modeState
 }: TypingAreaProps): React.ReactElement => {
     // useMemo callback only called on initial render and when dependencies change
     const wordsService = useMemo(() => {
         // TODO: could memoize the wordsService instance instead of memoizing the result of calling getRandomizedWords()
-        return new WordsService(source, fixedLength);
-    }, [fixedLength, source, mode]);
+        return new WordsService(modeState.wordsSource, modeState.wordCount);
+    }, [modeState.wordCount, modeState.wordsSource, modeState.mode]);
     const inputRef = useRef<HTMLInputElement>(null);
 
     /**
      * ExerciseState with a dispatch function where state is lazily initialized to the result of wordsService.getRandomizedWords()
+     * Unless there's a page refresh, wordsService will always be the initial value returned by useMemo even if props changing causes
+     * TypingArea to rerender... That's why state.wordsData isn't getting updated. Need to explicitly update state when wordsService changes
+     * via useEffect
      */
     const [state, dispatch] = useReducer(
         reducer, 
@@ -205,9 +210,12 @@ export const TypingArea = ({
     useEffect(() => {
         inputRef.current.focus();
     }, [])
+    useEffect(() => {
+        resetStates();
+    }, [wordsService])
 
     const resetStates = () => {
-        wordsService.resetRandomizedWords(fixedLength);
+        wordsService.resetRandomizedWords(modeState.wordCount);
         const newWords = wordsService.getRandomizedWords();
         dispatch({ 
             type: TypingActions.RESET, 
