@@ -1,5 +1,5 @@
 import React, { useEffect, useState, Suspense, ReactHTML, useReducer, useMemo, useRef } from 'react';
-import { ObjectValues, TypingMode, FixedWordExerciseLength } from '../models/models';
+import { ObjectValues, TypingMode, FixedWordExerciseLength, TypingModes } from '../models/models';
 import { WordsSource } from '../services/words/words.interface';
 import WordsService from '../services/words/words-service';
 import WordComponent from './Word';
@@ -50,6 +50,7 @@ interface ExerciseState {
     incorrectCharacters: number;
     startTime: number | null;
     endTime: number | null;
+    canType: boolean;
 }
 
 /**
@@ -69,8 +70,10 @@ export const reducer = (state: ExerciseState, action: DispatchInput): ExerciseSt
                 correctCharacters: 0,
                 incorrectCharacters: 0,
                 startTime: null,
-                endTime: null
+                endTime: null,
+                canType: true
             }
+
         case(TypingActions.TYPING_STARTED):
             console.debug('Initial states:', state);
             return {
@@ -78,6 +81,7 @@ export const reducer = (state: ExerciseState, action: DispatchInput): ExerciseSt
                 typingStarted: true,
                 startTime: Date.now()
             }
+
         case(TypingActions.CHARACTER_TYPED): {
             const inputValue = action.payload.inputValue;
             const characterTyped = inputValue[inputValue.length - 1];
@@ -109,6 +113,7 @@ export const reducer = (state: ExerciseState, action: DispatchInput): ExerciseSt
                 wordData: newWordData
             }
         }
+
         case(TypingActions.WORD_COMPLETE):
             const correct = action.payload.inputValue === state.words[state.currentWord];
             if (correct) {
@@ -143,18 +148,32 @@ export const reducer = (state: ExerciseState, action: DispatchInput): ExerciseSt
                 currentWord: state.currentWord + 1,
                 inputClass: "typing-input"
             }
+        
         case(TypingActions.WORD_DELETED):
             return {
                 ...state,
             }
-        case(TypingActions.EXERCISE_COMPLETE):
+
+        case(TypingActions.EXERCISE_COMPLETE): {
             console.debug('final states: ', state);
+            const finalWordData: WordData[] = [...state.wordData]; // need local variable for final typed words since typedWords state is not updated until next render is complete
+            finalWordData[state.currentWord].typedCharArray = action.payload.inputValue.split('');
+            const totalCharacters = getTotalCharacters(finalWordData.map((wordData) => wordData.word));
+            const correctCharacters = getCorrectCharacters(finalWordData);
+            console.log(`number of words: ${state.words.length}. current word: ${state.currentWord + 1}`);
+            console.log('Total characters: ', totalCharacters)
+            setWpm(calculateWpm(state.startTime, Date.now(), correctCharacters, state.incorrectCharacters));
+            setAccuracy(calculateNaiveAccuracy(totalCharacters, correctCharacters));
+
             return {
                 ...state,
                 ...action.payload,
                 currentWord: state.currentWord + 1,
-                endTime: Date.now()
+                endTime: Date.now(),
+                canType: false
             }
+        }
+
         default:
             return state;
     }
@@ -178,7 +197,7 @@ export const TypingArea = ({
     // useMemo callback only called on initial render and when dependencies change
     const wordsService = useMemo(() => {
         // TODO: could memoize the wordsService instance instead of memoizing the result of calling getRandomizedWords()
-        return new WordsService(modeState.wordsSource, modeState.wordCount);
+        return new WordsService(modeState.mode, modeState.wordsSource, modeState.wordCount);
     }, [modeState.wordCount, modeState.wordsSource, modeState.mode]);
     const inputRef = useRef<HTMLInputElement>(null);
 
@@ -202,7 +221,8 @@ export const TypingArea = ({
                 correctCharacters: 0,
                 incorrectCharacters: 0,
                 startTime: null,
-                endTime: null
+                endTime: null,
+                canType: true
             }
         }
     )
@@ -253,29 +273,30 @@ export const TypingArea = ({
             payload: { inputValue: inputValue }
         })
 
-        if (state.currentWord + 1 >= state.words.length) {
-            // TODO: extract into own function for finalizing type test 
-            const finalWordData: WordData[] = [...state.wordData]; // need local variable for final typed words since typedWords state is not updated until next render is complete
-            finalWordData[state.currentWord].typedCharArray = inputValue.split('');
-            const totalCharacters = getTotalCharacters(finalWordData.map((wordData) => wordData.word));
-            const correctCharacters = getCorrectCharacters(finalWordData);
-            console.log(`number of words: ${state.words.length}. current word: ${state.currentWord + 1}`);
-            console.log('Total characters: ', totalCharacters)
+        if (checkEndOfExercise(state, modeState)) {
+            // TODO: extract into own function for finalizing type test..
+            // const finalWordData: WordData[] = [...state.wordData]; // need local variable for final typed words since typedWords state is not updated until next render is complete
+            // finalWordData[state.currentWord].typedCharArray = inputValue.split('');
+            // const totalCharacters = getTotalCharacters(finalWordData.map((wordData) => wordData.word));
+            // const correctCharacters = getCorrectCharacters(finalWordData);
+            // console.log(`number of words: ${state.words.length}. current word: ${state.currentWord + 1}`);
+            // console.log('Total characters: ', totalCharacters)
             dispatch({
                 type: TypingActions.EXERCISE_COMPLETE,
             });
-            setWpm(calculateWpm(state.startTime, Date.now(), correctCharacters, state.incorrectCharacters));
-            setAccuracy(calculateNaiveAccuracy(totalCharacters, correctCharacters));
+            // setWpm(calculateWpm(state.startTime, Date.now(), correctCharacters, state.incorrectCharacters));
+            // setAccuracy(calculateNaiveAccuracy(totalCharacters, correctCharacters));
         }
 
     }
 
     const handleInput = (event: React.ChangeEvent) => {
-        if (state.currentWord >= state.words.length) {
+        if (state.currentWord >= state.words.length || !state.canType) {
             return;
         }
         if (!state.typingStarted) {
             dispatch({type: TypingActions.TYPING_STARTED}); // TODO: only trigger typing started if the character typed is a letter/number/symbol
+            setTimer(modeState, dispatch);
         }
         const inputValue = (event.target as HTMLInputElement).value;
 
@@ -329,6 +350,26 @@ export const TypingArea = ({
             </div>
         </div>
     );
+}
+
+const setTimer = (
+    modeState: ModeState, 
+    dispatch: React.Dispatch<React.ReducerAction<React.Reducer<ExerciseState, DispatchInput>>>
+): void => {
+    if(modeState.mode === TypingModes.TIMED) {
+        console.debug(`Mode is ${modeState.mode} and timer is being set for ${modeState.duration} seconds!`);
+        setTimeout(() => {
+            dispatch({type: TypingActions.EXERCISE_COMPLETE});
+        }, modeState.duration * 1000)
+    }
+}
+
+const checkEndOfExercise = (exerciseState: ExerciseState, modeState: ModeState): boolean => {
+    if(modeState.mode === TypingModes.FIXED) {
+        return exerciseState.currentWord + 1 >= exerciseState.words.length;
+    } else if (modeState.mode === TypingModes.TIMED) {
+        return false;
+    }
 }
 
 const typedWord = (state: ExerciseState): string => {

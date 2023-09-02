@@ -24,9 +24,10 @@ const Header = ({ }): React.ReactElement => {
  * the words are reset?
  */
 export const Landing = (): React.ReactElement => {
+
+    // todo: put these into a reducer and pass callback for dispatching state update to TypingArea component
     const [wpm, setWpm] = useState<number | null>(null);
     const [accuracy, setAccuracy] = useState<number | null>(null);
-    const [source, setSource] = useState<WordsSource>(SOURCE);
     const [modeState, modeDispatch] = useReducer(modeOptionsReducer, initialModeState);
 
     useEffect(() => console.debug('Initial state: ', modeState), []);
@@ -44,9 +45,6 @@ export const Landing = (): React.ReactElement => {
                         setWpm={setWpm}
                         setAccuracy={setAccuracy}
                         modeState={modeState}
-                        // mode={modeState.mode}
-                        // fixedLength={LENGTH}
-                        // source={source}
                     />
                 </div>
             </div>
