@@ -1,6 +1,6 @@
 import { WordsSource } from './words.interface';
 import Words from './basic-words.json';
-import { FixedWordExerciseLength, FixedWordExerciseLengthValue } from '../../models/models';
+import { FixedWordExerciseLength, FixedWordExerciseLengthValue, TypingMode } from '../../models/models';
 
 // TODO: maybe make this just helper functions instead of a class
 /**
@@ -14,7 +14,7 @@ export default class WordsService {
     private words: string[] = [];
     private randomizedWords: string[] = [];
 
-    constructor(source: WordsSource, length: FixedWordExerciseLengthValue) {
+    constructor(mode: TypingMode, source: WordsSource, length: FixedWordExerciseLengthValue) {
         console.debug(`Initializing WordsService with source ${source}`);
         this.words = Words[source];
         this.resetRandomizedWords(length);
