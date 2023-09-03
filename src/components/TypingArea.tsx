@@ -4,6 +4,7 @@ import { WordsSource } from '../services/words/words.interface';
 import WordsService from '../services/words/words-service';
 import WordComponent from './Word';
 import { ModeState } from '../reducers/mode-reducer';
+import { ExerciseActions, ExerciseStatsDispatchInput, ExerciseStatsState } from '../pages/landing/Landing';
 
 const deleteInputTypes = ['deleteContentBackward', 'deleteWordBackward', 'deleteSoftLineBackward', 'deleteHardLineBackward'];
 
@@ -33,6 +34,7 @@ type TypingAction = ObjectValues<typeof TypingActions>;
 interface ActionPayload {
     characterTyped: string;
     inputValue: string;
+    exerciseStatsDispatch: React.Dispatch<React.ReducerAction<React.Reducer<ExerciseStatsState, ExerciseStatsDispatchInput>>>
 }
 interface DispatchInput {
     type: TypingAction;
@@ -145,7 +147,7 @@ export const reducer = (state: ExerciseState, action: DispatchInput): ExerciseSt
                 ...state,
                 ...action.payload,
                 wordData: newWordData,
-                currentWord: state.currentWord + 1,
+                currentWord: state.currentWord >= state.words.length ? state.currentWord : state.currentWord + 1,
                 inputClass: "typing-input"
             }
         
@@ -157,13 +159,21 @@ export const reducer = (state: ExerciseState, action: DispatchInput): ExerciseSt
         case(TypingActions.EXERCISE_COMPLETE): {
             console.debug('final states: ', state);
             const finalWordData: WordData[] = [...state.wordData]; // need local variable for final typed words since typedWords state is not updated until next render is complete
+            console.debug('final Word data: ', [...state.wordData]);
             finalWordData[state.currentWord].typedCharArray = action.payload.inputValue.split('');
             const totalCharacters = getTotalCharacters(finalWordData.map((wordData) => wordData.word));
             const correctCharacters = getCorrectCharacters(finalWordData);
             console.log(`number of words: ${state.words.length}. current word: ${state.currentWord + 1}`);
             console.log('Total characters: ', totalCharacters)
-            setWpm(calculateWpm(state.startTime, Date.now(), correctCharacters, state.incorrectCharacters));
-            setAccuracy(calculateNaiveAccuracy(totalCharacters, correctCharacters));
+            const wpm = calculateWpm(state.startTime, Date.now(), correctCharacters, state.incorrectCharacters);
+            const accuracy = calculateNaiveAccuracy(totalCharacters, correctCharacters);
+            action.payload.exerciseStatsDispatch({
+                type: ExerciseActions.EXERCISE_COMPLETE,
+                payload: {
+                    wpm: wpm,
+                    accuracy: accuracy
+                }
+            })
 
             return {
                 ...state,
@@ -183,6 +193,7 @@ export const reducer = (state: ExerciseState, action: DispatchInput): ExerciseSt
 interface TypingAreaProps {
     setWpm: React.Dispatch<React.SetStateAction<number>>;
     setAccuracy: React.Dispatch<React.SetStateAction<number>>;
+    exerciseStatsDispatch: React.Dispatch<React.ReducerAction<React.Reducer<ExerciseStatsState, ExerciseStatsDispatchInput>>>
     // mode: TypingMode;
     // fixedLength: FixedWordExerciseLength;
     // source: WordsSource;
@@ -192,6 +203,7 @@ interface TypingAreaProps {
 export const TypingArea = ({
     setWpm,
     setAccuracy,
+    exerciseStatsDispatch,
     modeState
 }: TypingAreaProps): React.ReactElement => {
     // useMemo callback only called on initial render and when dependencies change
@@ -283,6 +295,9 @@ export const TypingArea = ({
             // console.log('Total characters: ', totalCharacters)
             dispatch({
                 type: TypingActions.EXERCISE_COMPLETE,
+                payload: {
+                    inputValue: inputValue
+                }
             });
             // setWpm(calculateWpm(state.startTime, Date.now(), correctCharacters, state.incorrectCharacters));
             // setAccuracy(calculateNaiveAccuracy(totalCharacters, correctCharacters));
