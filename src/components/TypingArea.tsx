@@ -147,7 +147,8 @@ export const reducer = (state: ExerciseState, action: DispatchInput): ExerciseSt
                 ...state,
                 ...action.payload,
                 wordData: newWordData,
-                currentWord: state.currentWord >= state.words.length ? state.currentWord : state.currentWord + 1,
+                // currentWord: state.currentWord >= state.words.length - 1 ? state.currentWord : state.currentWord + 1,
+                currentWord: state.currentWord + 1,
                 inputClass: "typing-input"
             }
         
@@ -157,28 +158,31 @@ export const reducer = (state: ExerciseState, action: DispatchInput): ExerciseSt
             }
 
         case(TypingActions.EXERCISE_COMPLETE): {
+            console.debug(`final currentWord value: ${state.currentWord}`);
             console.debug('final states: ', state);
             const finalWordData: WordData[] = [...state.wordData]; // need local variable for final typed words since typedWords state is not updated until next render is complete
             console.debug('final Word data: ', [...state.wordData]);
-            finalWordData[state.currentWord].typedCharArray = action.payload.inputValue.split('');
+            // finalWordData[state.currentWord].typedCharArray = action.payload.inputValue.split('');
             const totalCharacters = getTotalCharacters(finalWordData.map((wordData) => wordData.word));
             const correctCharacters = getCorrectCharacters(finalWordData);
             console.log(`number of words: ${state.words.length}. current word: ${state.currentWord + 1}`);
             console.log('Total characters: ', totalCharacters)
             const wpm = calculateWpm(state.startTime, Date.now(), correctCharacters, state.incorrectCharacters);
             const accuracy = calculateNaiveAccuracy(totalCharacters, correctCharacters);
-            action.payload.exerciseStatsDispatch({
-                type: ExerciseActions.EXERCISE_COMPLETE,
-                payload: {
-                    wpm: wpm,
-                    accuracy: accuracy
-                }
-            })
+            // setTimeout(() => {
+                action.payload.exerciseStatsDispatch({
+                    type: ExerciseActions.EXERCISE_COMPLETE,
+                    payload: {
+                        wpm: wpm,
+                        accuracy: accuracy
+                    }
+                })
+            // }, 0)
 
             return {
                 ...state,
                 ...action.payload,
-                currentWord: state.currentWord + 1,
+                // currentWord: state.currentWord + 1,
                 endTime: Date.now(),
                 canType: false
             }
@@ -194,9 +198,6 @@ interface TypingAreaProps {
     setWpm: React.Dispatch<React.SetStateAction<number>>;
     setAccuracy: React.Dispatch<React.SetStateAction<number>>;
     exerciseStatsDispatch: React.Dispatch<React.ReducerAction<React.Reducer<ExerciseStatsState, ExerciseStatsDispatchInput>>>
-    // mode: TypingMode;
-    // fixedLength: FixedWordExerciseLength;
-    // source: WordsSource;
     modeState: ModeState
 }
 // should mode state be passed together as one prop value or as individual prop values?
@@ -245,6 +246,22 @@ export const TypingArea = ({
     useEffect(() => {
         resetStates();
     }, [wordsService])
+    useEffect(() => {
+        if(checkEndOfExercise(state, modeState)) {
+            dispatch({
+                type: TypingActions.EXERCISE_COMPLETE,
+                payload: {
+                    // inputValue: inputValue,
+                    exerciseStatsDispatch: exerciseStatsDispatch
+                }
+            });
+        }
+    }, [state.currentWord]);
+    useEffect(() => {
+        if(state.endTime) {
+            console.log("inside endTime useEffect!");
+        }
+    }, [state.endTime])
 
     const resetStates = () => {
         wordsService.resetRandomizedWords(modeState.wordCount);
@@ -285,6 +302,7 @@ export const TypingArea = ({
             payload: { inputValue: inputValue }
         })
 
+        // move this to useEffect
         if (checkEndOfExercise(state, modeState)) {
             // TODO: extract into own function for finalizing type test..
             // const finalWordData: WordData[] = [...state.wordData]; // need local variable for final typed words since typedWords state is not updated until next render is complete
@@ -293,12 +311,6 @@ export const TypingArea = ({
             // const correctCharacters = getCorrectCharacters(finalWordData);
             // console.log(`number of words: ${state.words.length}. current word: ${state.currentWord + 1}`);
             // console.log('Total characters: ', totalCharacters)
-            dispatch({
-                type: TypingActions.EXERCISE_COMPLETE,
-                payload: {
-                    inputValue: inputValue
-                }
-            });
             // setWpm(calculateWpm(state.startTime, Date.now(), correctCharacters, state.incorrectCharacters));
             // setAccuracy(calculateNaiveAccuracy(totalCharacters, correctCharacters));
         }
@@ -316,7 +328,6 @@ export const TypingArea = ({
         const inputValue = (event.target as HTMLInputElement).value;
 
         if (isDelete(event, inputValue)) {
-            console.debug('deletion: ', inputValue);
             handleDeletion(inputValue);
             return; // should we return here?
         }
@@ -381,7 +392,7 @@ const setTimer = (
 
 const checkEndOfExercise = (exerciseState: ExerciseState, modeState: ModeState): boolean => {
     if(modeState.mode === TypingModes.FIXED) {
-        return exerciseState.currentWord + 1 >= exerciseState.words.length;
+        return exerciseState.currentWord >= exerciseState.words.length;
     } else if (modeState.mode === TypingModes.TIMED) {
         return false;
     }

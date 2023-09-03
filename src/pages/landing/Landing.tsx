@@ -36,6 +36,7 @@ const exerciseStatsReducer = (state: ExerciseStatsState, action: ExerciseStatsDi
         case(ExerciseActions.EXERCISE_STARTED): 
             return state;
         case(ExerciseActions.EXERCISE_COMPLETE):
+            console.log("Exercise complete!!");
             return {
                 ...state,
                 wpm: action.payload.wpm,
