@@ -33,10 +33,10 @@ export const ModeActions = {
     PRACTICE_SOURCE_SET: 'practice_source-set',
     FORCE_CORRECTIONS_SET: 'force_corrections-set',
     PRACTICE_FORMAT_SET: 'practice_format-set',
+    LOAD_FROM_SESSION_STORAGE: 'load-from-session-storage'
 } as const;
 export type ModeAction = ObjectValues<typeof ModeActions>;
 
-// this may cause issues polluting state with non state fields in the reducer
 interface ActionPayload {
 }
 export interface ModeDispatchInput {
@@ -89,6 +89,8 @@ export interface ModeState {
     practiceFormat: PracticeFormatValue;
 }
 
+export const MODE_STATE = 'MODE_STATE';
+
 export const initialModeState: ModeState = {
     mode: TypingModes.FIXED,
     wordCount: FixedWordExerciseLengths.MEDIUM.value,
@@ -106,6 +108,7 @@ export const initialModeState: ModeState = {
 
 export const modeOptionsReducer = (state: ModeState, action: ModeDispatchInput): ModeState => {
     console.debug(`Action: ${action.type}. Payload: ${JSON.stringify(action.payload)}`);
+    setStorage({ ...state, ...action.payload }, action.type);
     switch (action.type) {
         // When Mode is set, need to default options that aren't already set or are set with invalid options
         case (ModeActions.MODE_SET):
@@ -194,3 +197,10 @@ export const ModeActionsByCategory: Record<OptionCategoryValue, ModeAction> = {
     // [OptionCategories.FORCE_CORRECTIONS.value]: "force_corrections-set",
     // [OptionCategories.PRACTICE_FORMAT.value]: "practice_format-set"
 } as const;
+
+
+const setStorage = (state: ModeState, action: ModeAction): void => {
+    if(action !== ModeActions.LOAD_FROM_SESSION_STORAGE) {
+        sessionStorage.setItem(MODE_STATE, JSON.stringify(state));
+    }
+}
