@@ -110,6 +110,7 @@ export const WordsSourceLabels = {
     BASIC: { value: WordsSources.ENGLISH_BASIC, display: 'basic' },
     INTERMEDIATE: { value: WordsSources.ENGLISH_INTERMEDIATE, display: 'intermediate' },
     ADVANCED: { value: WordsSources.ENGLISH_ADVANCED, display: 'advanced' },
+    CONTRACTIONS: { value: WordsSources.ENGLISH_CONTRACTIONS, display: 'contractions' },
     DIFFICULT_WORDS: { value: WordsSources.DIFFICULT_WORDS, display: 'my difficult words' },
 } as const;
 type WordsSourceLabelOptions = typeof WordsSourceLabels;
