@@ -2,6 +2,21 @@
 // @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
 // roboto mono font
 @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500;1,600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Courier+Prime&family=IBM+Plex+Mono:wght@400;500;600&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Courier+Prime&family=IBM+Plex+Mono:wght@400;500;600&family=Inconsolata:wght@400;500&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Courier+Prime&family=IBM+Plex+Mono:wght@400;500;600&family=Inconsolata:wght@400;500&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,500;1,600;1,700;1,800;1,900&family=Source+Code+Pro:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Courier+Prime&family=Cousine&family=IBM+Plex+Mono:wght@400;500;600&family=Inconsolata:wght@400;500&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,500;1,600;1,700;1,800;1,900&family=Source+Code+Pro:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Courier+Prime&family=Cousine&family=IBM+Plex+Mono:wght@400;500;600&family=Inconsolata:wght@400;500&family=PT+Mono&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,500;1,600;1,700;1,800;1,900&family=Source+Code+Pro:wght@400;500&display=swap');
+
+
+@font-face {
+  font-family: "Mona Sans";
+  src: url('../public/Mona-Sans.woff2');
+
+  // src: url('../public/Mono-Sans.ttf');
+}
+
 
 * {
   padding: 0;
@@ -14,7 +29,16 @@ html,
 body {
   padding: 0;
   margin: 0;
-  font-family: "Roboto Mono";
+  // font-family: 'Courier Prime', monospace;
+  font-family: 'Cousine', monospace;
+  // font-family: 'IBM Plex Mono', monospace;
+  // font-family: 'Inconsolata', monospace;
+  // font-family: 'PT Mono', monospace;
+  // font-family: 'Roboto Mono', monospace;
+  // font-family: 'Source Code Pro', monospace;
+
+  // font-family: 'Mona Sans', monospace;
+
   color: colors.$font-color;
   background-color: colors.$bg-color;
   line-height: 1.6rem;
