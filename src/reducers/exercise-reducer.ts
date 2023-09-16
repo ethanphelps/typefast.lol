@@ -18,7 +18,7 @@ export const TypingActions = {
     RESET: 'reset',
     TYPING_STARTED: 'typing-started',
     WORD_COMPLETE: 'word-complete',
-    WORD_DELETED: 'word-deleted',
+    PREVIOUS_WORD: 'previous-word',
     CHARACTER_TYPED: 'character-typed',
     CHARACTER_DELETED: 'character-deleted', // may be superfluous 
     EXERCISE_COMPLETE: 'exercise-complete'
@@ -86,14 +86,14 @@ export const exerciseReducer = (state: ExerciseState, action: DispatchInput): Ex
                 timeoutId: setTimedModeTimer(action.payload.modeState, action.payload.dispatch)
             }
 
+        // TODO: handle multiple characters being inserted at once into the input element (maybe? copy/paste shouldn't be expected functionality)
         case(TypingActions.CHARACTER_TYPED): {
             const inputValue = action.payload.inputValue;
-            const characterTyped = inputValue[inputValue.length - 1];
+            const characterTyped = inputValue[inputValue.length - 1]; // this may need to change
             let newWordData;
             if(characterTyped !== " ") {
                 newWordData = [...state.wordData];
                 newWordData[state.currentWord].typedCharArray.push(characterTyped);
-                console.debug('new word data: ', newWordData);
             }
             return {
                 ...state,
@@ -102,7 +102,6 @@ export const exerciseReducer = (state: ExerciseState, action: DispatchInput): Ex
             }
         }
 
-        // TODO: need to get this to handle ctrl-delete for deleting whole words and cmd-delete for deleting whole lines
         case(TypingActions.CHARACTER_DELETED): {
             const newWordData = [...state.wordData];
             const numCharsDeleted = getDeletedCharacters(action.payload.inputValue, state.wordData[state.currentWord].typedCharArray);
@@ -111,7 +110,6 @@ export const exerciseReducer = (state: ExerciseState, action: DispatchInput): Ex
             const length = state.wordData[state.currentWord].typedCharArray.length;
             newWordData[state.currentWord].typedCharArray = state.wordData[state.currentWord].typedCharArray.slice(0, length - numCharsDeleted);
             console.debug('new char array: ', newWordData[state.currentWord].typedCharArray);
-            // console.debug('character deleted! new word data: ', newWordData);
             return {
                 ...state,
                 ...action.payload,
@@ -155,10 +153,16 @@ export const exerciseReducer = (state: ExerciseState, action: DispatchInput): Ex
                 inputClass: "typing-input"
             }
         
-        case(TypingActions.WORD_DELETED):
-            return {
-                ...state,
+        case(TypingActions.PREVIOUS_WORD): {
+            if(state.currentWord >= 1) {
+                const newWordData = [...state.wordData];
+                newWordData[state.currentWord - 1].typedCharArray.push(' ');
+                return {
+                    ...state,
+                    currentWord: state.currentWord - 1
+                }
             }
+        }
 
         case(TypingActions.EXERCISE_COMPLETE): {
             console.debug(`final currentWord value: ${state.currentWord}`);
@@ -184,6 +188,10 @@ export const exerciseReducer = (state: ExerciseState, action: DispatchInput): Ex
         default:
             return state;
     }
+}
+
+export const handleKeyDown  = (event: KeyboardEvent): void => {
+    // TODO: remove if deemed unnecessary 
 }
 
 const getFinalWordData = (state: ExerciseState, mode: TypingMode): WordData[] => {

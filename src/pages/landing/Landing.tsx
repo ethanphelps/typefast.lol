@@ -1,4 +1,4 @@
-import React, { useMemo, useReducer } from 'react';
+import React, { useEffect, useMemo, useReducer } from 'react';
 import './landing.scss';
 import { TypingArea, getWordDataList } from '../../components/TypingArea';
 import { WordsSource, WordsSources } from '../../services/words/words.interface';
@@ -25,8 +25,8 @@ const Header = ({ }): React.ReactElement => {
  */
 export const Landing = (): React.ReactElement => {
     const [modeState, modeDispatch] = useReducer(
-        modeOptionsReducer, 
-        initialModeState, 
+        modeOptionsReducer,
+        initialModeState,
         (initialModeState: ModeState): ModeState => {
             const sessionState = sessionStorage.getItem(MODE_STATE);
             const parsedState: Partial<ModeState> = sessionState ? JSON.parse(sessionState) : {};

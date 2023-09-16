@@ -244,3 +244,8 @@ body {
   color: colors.$incorrect-red;
   border-color: colors.$incorrect-red;
 }
+
+#invisible-input {
+  z-index: -1;
+  position: absolute;
+}

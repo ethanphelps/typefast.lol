@@ -4,7 +4,7 @@ import { WordsSource } from '../services/words/words.interface';
 import WordsService from '../services/words/words-service';
 import WordComponent from './Word';
 import { ModeState } from '../reducers/mode-reducer';
-import { DispatchInput, ExerciseState, TypingActions, WordData, typedWord } from '../reducers/exercise-reducer';
+import { DispatchInput, ExerciseState, TypingActions, WordData, handleKeyDown, typedWord } from '../reducers/exercise-reducer';
 
 const deleteInputTypes = ['deleteContentBackward', 'deleteWordBackward', 'deleteSoftLineBackward', 'deleteHardLineBackward'];
 
@@ -27,10 +27,37 @@ export const TypingArea = ({
 
     useEffect(() => {
         inputRef.current.focus();
+        
+        const focusInputElement = (event: KeyboardEvent) => {
+            inputRef.current.focus();
+        }
+
+        document.addEventListener('keydown', focusInputElement);
+        document.addEventListener('keydown', handleKeyDown);
+        return () => {
+            document.removeEventListener('keydown', focusInputElement);
+            document.removeEventListener('keydown', handleKeyDown);
+        };
     }, [])
+
     useEffect(() => {
         resetStates();
     }, [wordsService])
+
+    useEffect(() => {
+        console.debug("input.value: ", `"${inputRef.current.value}"`);
+        const handleBeforeInput = (event: InputEvent) => {
+            if(isDeleteInputType(event) && state.wordData[state.currentWord].typedCharArray.length == 0 && state.currentWord > 0) {
+                dispatch({
+                    type: TypingActions.PREVIOUS_WORD
+                })
+            }
+        }
+        inputRef.current.addEventListener('beforeinput', handleBeforeInput);
+        return () => {
+            inputRef.current.removeEventListener('beforeinput', handleBeforeInput);
+        }
+    }, [state]);
 
     const resetStates = () => {
         wordsService.resetRandomizedWords(modeState.wordCount);
@@ -45,8 +72,12 @@ export const TypingArea = ({
         inputRef.current.focus();
     }
 
+    const isDeleteInputType = (event: InputEvent): boolean => {
+        return deleteInputTypes.includes(event.inputType);
+    }
+
     const isDelete = (event: React.ChangeEvent, inputValue: string): boolean => {
-        return deleteInputTypes.includes((event.nativeEvent as InputEvent).inputType) || inputValue.length < state.wordData[state.currentWord].typedCharArray.length;
+        return isDeleteInputType(event.nativeEvent as InputEvent) || inputValue.length < state.wordData[state.currentWord].typedCharArray.length;
     }
 
     // TODO: change this logic to handle going backwards to other words
@@ -83,6 +114,7 @@ export const TypingArea = ({
         }
     }
 
+    // TODO: transition this to a KeyDown handler (maybe, may not need to)
     const handleInput = (event: React.ChangeEvent) => {
         if (state.currentWord >= state.words.length || !state.canType) {
             return;
@@ -136,10 +168,11 @@ export const TypingArea = ({
             </article>
             <div className="input-row">
                 <input
+                    id="invisible-input"
                     type="text"
-                    value={state.wordData[state.currentWord]?.typedCharArray.join('') || ""}
-                    className={state.inputClass}
-                    onChange={handleInput}
+                    value={state.wordData[state.currentWord]?.typedCharArray.join('') || ""} // may need to manage the value in a more fine-grained fasion | may conflict with handleBeforeInput behaviors
+                    className={state.inputClass} // TODO: remove this 
+                    onChange={handleInput} // may need to reconsider how handleInput is called (may need to call on keypress instead of onChange on the input element)
                     ref={inputRef}
                 >
                 </input>
