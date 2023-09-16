@@ -57,7 +57,6 @@ export const Landing = (): React.ReactElement => {
                 wordData: getWordDataList(wordsService.getRandomizedWords()),
                 currentWord: 0,
                 cursor: 0,
-                inputClass: "typing-input",
                 typingStarted: false,
                 correctCharacters: 0,
                 incorrectCharacters: 0,

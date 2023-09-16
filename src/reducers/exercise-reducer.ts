@@ -12,6 +12,7 @@ export interface WordData {
     typedCharArray: string[]; // char array version of word to use for char highlighting
     incorrectAttempts: []; 
     cssClass: string;
+    mistyped: boolean;
 }
 
 export const TypingActions = {
@@ -42,7 +43,6 @@ export interface ExerciseState {
     wordData: WordData[];
     currentWord: number;
     cursor: number;
-    inputClass: string;
     typingStarted: boolean;
     correctCharacters: number;
     incorrectCharacters: number;
@@ -68,7 +68,6 @@ export const exerciseReducer = (state: ExerciseState, action: DispatchInput): Ex
                 ...action.payload,
                 currentWord: 0,
                 cursor: 0,
-                inputClass: "typing-input",
                 typingStarted: false,
                 correctCharacters: 0,
                 incorrectCharacters: 0,
@@ -91,9 +90,14 @@ export const exerciseReducer = (state: ExerciseState, action: DispatchInput): Ex
             const inputValue = action.payload.inputValue;
             const characterTyped = inputValue[inputValue.length - 1]; // this may need to change
             let newWordData;
+            let targetWord = state.wordData[state.currentWord].wordCharArray;
+            let typedWord = state.wordData[state.currentWord].typedCharArray;
             if(characterTyped !== " ") {
                 newWordData = [...state.wordData];
                 newWordData[state.currentWord].typedCharArray.push(characterTyped);
+                if(!wordIncrementallyCorrect(targetWord, typedWord)) {
+                    newWordData[state.currentWord].mistyped = true;
+                }
             }
             return {
                 ...state,
@@ -150,7 +154,6 @@ export const exerciseReducer = (state: ExerciseState, action: DispatchInput): Ex
                 wordData: newWordData,
                 // currentWord: state.currentWord >= state.words.length - 1 ? state.currentWord : state.currentWord + 1,
                 currentWord: state.currentWord + 1,
-                inputClass: "typing-input"
             }
         
         case(TypingActions.PREVIOUS_WORD): {
@@ -175,6 +178,8 @@ export const exerciseReducer = (state: ExerciseState, action: DispatchInput): Ex
             console.log('Total characters: ', totalCharacters)
             const wpm = calculateWpm(state.startTime, Date.now(), correctCharacters, state.incorrectCharacters);
             const accuracy = calculateNaiveAccuracy(totalCharacters, correctCharacters);
+            const mistypedWords = getMistypedWords(finalWordData);
+            console.log('Mistyped words: ', mistypedWords);
             return {
                 ...state,
                 ...action.payload,
@@ -190,6 +195,16 @@ export const exerciseReducer = (state: ExerciseState, action: DispatchInput): Ex
     }
 }
 
+const getMistypedWords = (wordData: WordData[]): string[] => {
+    const mistyped: string[] = [];
+    wordData.forEach((word: WordData) => {
+        if(word.mistyped) {
+            mistyped.push(word.word);
+        }
+    })
+    return mistyped;
+}
+
 export const handleKeyDown  = (event: KeyboardEvent): void => {
     // TODO: remove if deemed unnecessary 
 }
@@ -198,7 +213,7 @@ const getFinalWordData = (state: ExerciseState, mode: TypingMode): WordData[] =>
     if(mode === TypingModes.FIXED || mode === TypingModes.QUOTES) {
         return [...state.wordData];
     } else if (mode === TypingModes.TIMED) {
-        return state.wordData.slice(0, state.currentWord);
+        return state.wordData.slice(0, state.currentWord); // TODO: see how to handle timer ending when last letter of last word typed correctly but no space pressed (should count as correct)
     }
     return [...state.wordData];
 }
@@ -256,6 +271,22 @@ const getCorrectCharacters = (wordData: WordData[]): number => {
     }
     console.log('correct characters: ', sum);
     return sum;
+}
+
+/**
+ * returns incremental correctness of the word as user is typing
+ * TODO: use wordCharArray and typedCharArray instead of word and typed word
+ */
+const wordIncrementallyCorrect = (targetWord: string[], typedWord: string[]) => {
+    if(typedWord.length > targetWord.length) {
+        return false;
+    }
+    for (let i = 0; i < typedWord.length; i++) {
+        if (typedWord[i] !== targetWord[i]) {
+            return false;
+        }
+    }
+    return true;
 }
 
 /**

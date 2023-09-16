@@ -91,7 +91,6 @@ export const TypingArea = ({
             type: TypingActions.CHARACTER_DELETED,
             payload: {
                 inputValue: inputValue,
-                inputClass: getInputClass(state.words[state.currentWord], inputValue)
             }
         });
     }
@@ -139,7 +138,6 @@ export const TypingArea = ({
             type: TypingActions.CHARACTER_TYPED,
             payload: {
                 inputValue: inputValue,
-                inputClass: getInputClass(state.words[state.currentWord], inputValue),
             }
         });
 
@@ -171,7 +169,6 @@ export const TypingArea = ({
                     id="invisible-input"
                     type="text"
                     value={state.wordData[state.currentWord]?.typedCharArray.join('') || ""} // may need to manage the value in a more fine-grained fasion | may conflict with handleBeforeInput behaviors
-                    className={state.inputClass} // TODO: remove this 
                     onChange={handleInput} // may need to reconsider how handleInput is called (may need to call on keypress instead of onChange on the input element)
                     ref={inputRef}
                 >
@@ -197,25 +194,10 @@ const shouldMoveToNextWord = (typedWord: string, keyPressed: string): boolean =>
 }
 
 
-/**
- * returns incremental correctness of the word as user is typing
- * TODO: use wordCharArray and typedCharArray instead of word and typed word
- */
-const wordIsCorrect = (targetWord: string, typedWord: string) => {
-    if (typedWord.length < targetWord.length) {
-        for (let i = 0; i < typedWord.length; i++) {
-            if (typedWord[i] !== targetWord[i]) {
-                return false;
-            }
-        }
-        return true;
-    }
-    return typedWord.trim() === targetWord;
-}
 
-const getInputClass = (word: string, typedWord: string): string => {
-    return wordIsCorrect(word, typedWord) ? "typing-input" : "typing-input incorrect-input";
-}
+// const getInputClass = (word: string, typedWord: string): string => {
+//     return wordIsCorrect(word, typedWord) ? "typing-input" : "typing-input incorrect-input";
+// }
 
 export const getWordDataList = (selectedWords: string[]): WordData[] => {
     const data: WordData[] = selectedWords.map((word: string, index: number) => {
@@ -225,7 +207,8 @@ export const getWordDataList = (selectedWords: string[]): WordData[] => {
             wordCharArray: word.split(''),
             typedCharArray: [],
             incorrectAttempts: [],
-            cssClass: ""
+            cssClass: "",
+            mistyped: false
         }
     });
     data[0] = { ...data[0], cssClass: "highlighted" };
