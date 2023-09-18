@@ -140,7 +140,8 @@ export const exerciseReducer = (state: ExerciseState, action: DispatchInput): Ex
             newWordData[state.currentWord] = {
                 ...newWordData[state.currentWord],
                 typedCharArray: updatedTypedCharArray,
-                cssClass: newClassName
+                cssClass: newClassName,
+                mistyped: correct ? newWordData[state.currentWord].mistyped : true
             }
             if (state.currentWord + 1 < state.wordData.length) {
                 newWordData[state.currentWord + 1] = {

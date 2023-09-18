@@ -42,7 +42,7 @@ module.exports = {
   resolve: {
     extensions: ['.tsx', '.ts', '.js'],
     alias: {
-
+      '@public': path.resolve(__dirname, 'public')
     }
   },
   module: {

@@ -10,3 +10,24 @@ export const WordsSources = {
     DIFFICULT_WORDS: 'difficult-words',
 } as const;
 export type WordsSource = ObjectValues<typeof WordsSources>;
+
+
+export interface Quote {
+    text: string,
+    source: string,
+    length: number,
+}
+
+export interface Sections {
+    S: string[],
+    M: string[],
+    L: string[],
+    XL: string[],
+}
+
+export interface QuotesCollection {
+    language: string,
+    groups: number[][],
+    sections: Sections,
+    quotes: Record<string, Quote>
+}

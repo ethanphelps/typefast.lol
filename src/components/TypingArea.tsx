@@ -27,7 +27,7 @@ export const TypingArea = ({
 
     useEffect(() => {
         inputRef.current.focus();
-        
+
         const focusInputElement = (event: KeyboardEvent) => {
             inputRef.current.focus();
         }
@@ -47,7 +47,7 @@ export const TypingArea = ({
     useEffect(() => {
         console.debug("input.value: ", `"${inputRef.current.value}"`);
         const handleBeforeInput = (event: InputEvent) => {
-            if(isDeleteInputType(event) && state.wordData[state.currentWord].typedCharArray.length == 0 && state.currentWord > 0) {
+            if (state.currentWord > 0 && state.currentWord < state.words.length && isDeleteInputType(event) && state.wordData[state.currentWord].typedCharArray.length == 0) {
                 dispatch({
                     type: TypingActions.PREVIOUS_WORD
                 })
@@ -60,13 +60,23 @@ export const TypingArea = ({
     }, [state]);
 
     const resetStates = () => {
-        wordsService.resetRandomizedWords(modeState.wordCount);
-        const newWords = wordsService.getRandomizedWords();
+        wordsService.resetWords();
+        const newWords = wordsService.getWords();
         dispatch({
             type: TypingActions.RESET,
             payload: {
                 words: newWords,
                 wordData: getWordDataList(newWords)
+            }
+        });
+        inputRef.current.focus();
+    }
+    const retryExercise = () => {
+        dispatch({
+            type: TypingActions.RESET,
+            payload: {
+                words: wordsService.getWords(),
+                wordData: getWordDataList(wordsService.getWords())
             }
         });
         inputRef.current.focus();
@@ -98,7 +108,7 @@ export const TypingArea = ({
     const handleWordComplete = (inputValue: string) => {
         dispatch({
             type: TypingActions.WORD_COMPLETE,
-            payload: { 
+            payload: {
                 inputValue: inputValue,
                 mode: modeState.mode
             },
@@ -119,13 +129,13 @@ export const TypingArea = ({
             return;
         }
         if (!state.typingStarted) {
-            dispatch({ 
+            dispatch({
                 type: TypingActions.TYPING_STARTED, // TODO: only trigger typing started if the character typed is a letter/number/symbol
                 payload: {
                     modeState: modeState,
                     dispatch: dispatch
                 }
-            }); 
+            });
         }
         const inputValue = (event.target as HTMLInputElement).value;
 
@@ -173,7 +183,8 @@ export const TypingArea = ({
                     ref={inputRef}
                 >
                 </input>
-                <button type="button" className="retry-button" onClick={resetStates}>retry</button>
+                <button type="button" className="retry-button" onClick={resetStates}>next</button>
+                <button type="button" className="retry-button" onClick={retryExercise}>retry</button>
             </div>
         </div>
     );
@@ -181,11 +192,11 @@ export const TypingArea = ({
 
 
 const checkEndOfExercise = (exerciseState: ExerciseState, modeState: ModeState): boolean => {
-    if (modeState.mode === TypingModes.FIXED) {
+    if (modeState.mode === TypingModes.FIXED || modeState.mode === TypingModes.QUOTES) {
         return exerciseState.currentWord + 1 >= exerciseState.words.length;
     } else if (modeState.mode === TypingModes.TIMED) {
         return false;
-    }
+    } 
 }
 
 // TODO: add force correctness mode, but that would just affect the overall correctness, not whether you can move to the next word or not
@@ -193,11 +204,6 @@ const shouldMoveToNextWord = (typedWord: string, keyPressed: string): boolean =>
     return typedWord && keyPressed === ' ';
 }
 
-
-
-// const getInputClass = (word: string, typedWord: string): string => {
-//     return wordIsCorrect(word, typedWord) ? "typing-input" : "typing-input incorrect-input";
-// }
 
 export const getWordDataList = (selectedWords: string[]): WordData[] => {
     const data: WordData[] = selectedWords.map((word: string, index: number) => {

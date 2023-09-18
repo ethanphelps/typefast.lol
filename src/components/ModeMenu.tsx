@@ -1,7 +1,8 @@
 import React, { useEffect, useReducer, useState } from 'react';
 import '../pages/landing/landing.scss';
-import { ModeOptions, OptionCategory, OptionCategoryDisplay, OptionCategoryValue, OptionItemConfiguration, OptionItemValue, OptionValuesByCategory, StatePropertiesByCategory, TypingMode, TypingModes } from '../models/models';
+import { ModeOptions, OptionCategories, OptionCategory, OptionCategoryDisplay, OptionCategoryValue, OptionItemConfiguration, OptionItemValue, OptionValuesByCategory, StatePropertiesByCategory, TypingMode, TypingModes } from '../models/models';
 import { ModeActions, ModeState, ModeDispatchInput, ModeActionsByCategory } from '../reducers/mode-reducer';
+import ModeSelectInput from './ModeSelectInput';
 
 
 interface ModeRowProps {
@@ -53,33 +54,66 @@ const getModeOptionStateByCategory = (state: ModeState, category: OptionCategory
     return state[StatePropertiesByCategory[category]] as Exclude<OptionItemValue, TypingMode>;
 }
 
+export const ModeRadioInput = ({ category, optionItems, state, dispatch }: ModeOptionRowProps): React.ReactElement => {
+    return (
+        <div className="mode-option-value-list">
+            {
+                optionItems.map((optionItem: OptionItemConfiguration, index: number) => {
+                    return (
+                        <ModeOption
+                            item={optionItem}
+                            selectedItem={getModeOptionStateByCategory(state, category.value)} // map current category to a state value for current selected item from that category
+                            category={category}
+                            state={state}
+                            dispatch={dispatch}
+                            key={index}
+                        />
+                    )
+                })
+            }
+        </div>
+    )
+}
 
-interface ModeOptionRowProps {
+type ModeInputComponent = typeof ModeRadioInput | typeof ModeSelectInput;
+export const OptionCategoryToInputComponent: Record<OptionCategoryValue, ModeInputComponent> = {
+    [OptionCategories.COUNT.value]: ModeRadioInput,
+    [OptionCategories.DURATION.value]: ModeRadioInput,
+    [OptionCategories.LENGTH.value]: ModeRadioInput,
+    [OptionCategories.PUNCTUATION.value]: ModeRadioInput,
+    [OptionCategories.NUMBERS.value]: ModeRadioInput,
+    [OptionCategories.WORDS_SOURCE.value]: ModeSelectInput,
+    [OptionCategories.QUOTES_SOURCE.value]: ModeSelectInput,
+    // [OptionCategories.WORDS_SOURCE.value]: ModeRadioInput,
+    // [OptionCategories.QUOTES_SOURCE.value]: ModeRadioInput,
+    [OptionCategories.PRACTICE_SOURCE.value]: ModeRadioInput,
+    [OptionCategories.FORCE_CORRECTIONS.value]: ModeRadioInput,
+    [OptionCategories.PRACTICE_FORMAT.value]: ModeRadioInput
+} as const
+
+
+// TODO: conditionaly display horizontal selector or select based on config
+export interface ModeOptionRowProps {
     category: OptionCategory;
     optionItems: OptionItemConfiguration[];
     state: ModeState;
     dispatch: React.Dispatch<React.ReducerAction<React.Reducer<ModeState, ModeDispatchInput>>>;
 }
+
+/**
+ * Each option category is mapped to a specific input component which is chosen at runtime
+ */
 const ModeOptionRow = ({ category, optionItems, state, dispatch }: ModeOptionRowProps): React.ReactElement => {
+    const DynamicInputComponent = OptionCategoryToInputComponent[category.value];
     return (
         <div className="mode-option-row">
             <div className="mode-option-label">{category.display}:</div>
-            <div className="mode-option-value-list">
-                {
-                    optionItems.map((optionItem: OptionItemConfiguration, index: number) => {
-                        return (
-                            <ModeOption
-                                item={optionItem}
-                                selectedItem={getModeOptionStateByCategory(state, category.value)} // map current category to a state value for current selected item from that category
-                                category={category}
-                                state={state}
-                                dispatch={dispatch}
-                                key={index}
-                            />
-                        )
-                    })
-                }
-            </div>
+            <DynamicInputComponent 
+                category={category}
+                optionItems={optionItems}
+                state={state}
+                dispatch={dispatch}
+            />
         </div>
     );
 };

@@ -32,6 +32,8 @@ body {
   display: flex;
   flex-direction: column;
   flex-basis: 640px;
+  align-items: center;
+  justify-content: center;
 }
 
 .mode-menu-container {
@@ -42,6 +44,7 @@ body {
   border: none;
   border-radius: 0.4rem;
   padding: 20px;
+  // max-width: 640px; // use this to explicitly prevent mode menu from overflowing
 }
 
 #mode-menu-divider {
@@ -249,3 +252,96 @@ body {
   z-index: -1;
   position: absolute;
 }
+
+
+// --- Mode Select Input
+
+.custom-select {
+  position: relative;
+  // width: 200px; /* Set the width as needed */
+  cursor: pointer;
+}
+
+.select-display {
+  // padding: 10px;
+  border-radius: 0.4rem;
+  // border-top-left-radius: 0.4rem;
+  // border-top-right-radius: 0.4rem;
+  background-color: colors.$accent-color;
+  padding-left: 10px;
+  // border: 2px solid colors.$github-dark;
+  // border-color: colors.$github-dark;
+}
+.select-display.open {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  // border-top: 2px solid colors.$github-dark;
+  // border-right: 2px solid colors.$github-dark;
+  // border-left: 2px solid colors.$github-dark;
+}
+
+.select-options {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  // border: 1px solid transparent;
+  border-bottom-left-radius: 0.4rem;
+  border-bottom-right-radius: 0.4rem;
+  // outline: 1px solid transparent;
+}
+
+.select-options.closed {
+  display: none;
+}
+
+.select-options li {
+  padding: 5px 10px 5px 10px;
+  cursor: pointer;
+  background-color: colors.$typing-container-color;
+  background-color: colors.$accent-color;
+  transition: background-color 0.15s ease-in-out;
+}
+.select-options li:hover {
+  background-color: colors.$accent-color;
+  background-color: colors.$typing-container-color;
+  background-color: colors.$lighter-accent;
+}
+.select-options li:last-child {
+  border-bottom-left-radius: 0.4rem;
+  border-bottom-right-radius: 0.4rem;
+}
+
+/* Style for when the dropdown is open */
+.custom-select.open .select-options.open {
+  display: block;
+  background-color: white;
+  // z-index: 2;
+}
+
+/* Add styles for the "open" class when the dropdown is open */
+// .custom-select.open .select-display {
+//   border-bottom-right-radius: 0;
+//   border-bottom-left-radius: 0;
+// }
+
+// .custom-select.open .select-options {
+//   display: block;
+//   border: 1px solid #ccc;
+//   border-top: none;
+// }
+
+// .custom-select.open .select-options li {
+//   padding: 10px;
+//   cursor: pointer;
+// }
+
+// /* Highlight the selected option when open */
+// .custom-select.open .select-options li:hover {
+//   background-color: #f0f0f0;
+// }
+
+// --- Mode Select Input
