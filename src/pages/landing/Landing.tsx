@@ -38,8 +38,8 @@ export const Landing = (): React.ReactElement => {
     );
 
     const wordsService = useMemo(() => {
-        return new WordsService(modeState.mode, modeState.wordsSource, modeState.wordCount);
-    }, [modeState.wordCount, modeState.wordsSource, modeState.mode]);
+        return new WordsService(modeState);
+    }, [modeState.wordCount, modeState.wordsSource, modeState.mode, modeState.quotesLength, modeState.quotesSource]);
 
     /**
      * ExerciseState with a dispatch function where state is lazily initialized to the result of wordsService.getRandomizedWords()
@@ -53,11 +53,10 @@ export const Landing = (): React.ReactElement => {
         (wordsService: WordsService): ExerciseState => {
             console.log("setting initial states for the reducers!");
             return {
-                words: wordsService.getRandomizedWords(),
-                wordData: getWordDataList(wordsService.getRandomizedWords()),
+                words: wordsService.getWords(),
+                wordData: getWordDataList(wordsService.getWords()),
                 currentWord: 0,
                 cursor: 0,
-                inputClass: "typing-input",
                 typingStarted: false,
                 correctCharacters: 0,
                 incorrectCharacters: 0,

@@ -27,7 +27,7 @@ export const TypingArea = ({
 
     useEffect(() => {
         inputRef.current.focus();
-        
+
         const focusInputElement = (event: KeyboardEvent) => {
             inputRef.current.focus();
         }
@@ -47,7 +47,7 @@ export const TypingArea = ({
     useEffect(() => {
         console.debug("input.value: ", `"${inputRef.current.value}"`);
         const handleBeforeInput = (event: InputEvent) => {
-            if(isDeleteInputType(event) && state.wordData[state.currentWord].typedCharArray.length == 0 && state.currentWord > 0) {
+            if (state.currentWord > 0 && state.currentWord < state.words.length && isDeleteInputType(event) && state.wordData[state.currentWord].typedCharArray.length == 0) {
                 dispatch({
                     type: TypingActions.PREVIOUS_WORD
                 })
@@ -60,13 +60,23 @@ export const TypingArea = ({
     }, [state]);
 
     const resetStates = () => {
-        wordsService.resetRandomizedWords(modeState.wordCount);
-        const newWords = wordsService.getRandomizedWords();
+        wordsService.resetWords();
+        const newWords = wordsService.getWords();
         dispatch({
             type: TypingActions.RESET,
             payload: {
                 words: newWords,
                 wordData: getWordDataList(newWords)
+            }
+        });
+        inputRef.current.focus();
+    }
+    const retryExercise = () => {
+        dispatch({
+            type: TypingActions.RESET,
+            payload: {
+                words: wordsService.getWords(),
+                wordData: getWordDataList(wordsService.getWords())
             }
         });
         inputRef.current.focus();
@@ -91,7 +101,6 @@ export const TypingArea = ({
             type: TypingActions.CHARACTER_DELETED,
             payload: {
                 inputValue: inputValue,
-                inputClass: getInputClass(state.words[state.currentWord], inputValue)
             }
         });
     }
@@ -99,7 +108,7 @@ export const TypingArea = ({
     const handleWordComplete = (inputValue: string) => {
         dispatch({
             type: TypingActions.WORD_COMPLETE,
-            payload: { 
+            payload: {
                 inputValue: inputValue,
                 mode: modeState.mode
             },
@@ -120,13 +129,13 @@ export const TypingArea = ({
             return;
         }
         if (!state.typingStarted) {
-            dispatch({ 
+            dispatch({
                 type: TypingActions.TYPING_STARTED, // TODO: only trigger typing started if the character typed is a letter/number/symbol
                 payload: {
                     modeState: modeState,
                     dispatch: dispatch
                 }
-            }); 
+            });
         }
         const inputValue = (event.target as HTMLInputElement).value;
 
@@ -139,7 +148,6 @@ export const TypingArea = ({
             type: TypingActions.CHARACTER_TYPED,
             payload: {
                 inputValue: inputValue,
-                inputClass: getInputClass(state.words[state.currentWord], inputValue),
             }
         });
 
@@ -171,12 +179,12 @@ export const TypingArea = ({
                     id="invisible-input"
                     type="text"
                     value={state.wordData[state.currentWord]?.typedCharArray.join('') || ""} // may need to manage the value in a more fine-grained fasion | may conflict with handleBeforeInput behaviors
-                    className={state.inputClass} // TODO: remove this 
                     onChange={handleInput} // may need to reconsider how handleInput is called (may need to call on keypress instead of onChange on the input element)
                     ref={inputRef}
                 >
                 </input>
-                <button type="button" className="retry-button" onClick={resetStates}>retry</button>
+                <button type="button" className="retry-button" onClick={resetStates}>next</button>
+                <button type="button" className="retry-button" onClick={retryExercise}>retry</button>
             </div>
         </div>
     );
@@ -184,11 +192,11 @@ export const TypingArea = ({
 
 
 const checkEndOfExercise = (exerciseState: ExerciseState, modeState: ModeState): boolean => {
-    if (modeState.mode === TypingModes.FIXED) {
+    if (modeState.mode === TypingModes.FIXED || modeState.mode === TypingModes.QUOTES) {
         return exerciseState.currentWord + 1 >= exerciseState.words.length;
     } else if (modeState.mode === TypingModes.TIMED) {
         return false;
-    }
+    } 
 }
 
 // TODO: add force correctness mode, but that would just affect the overall correctness, not whether you can move to the next word or not
@@ -196,26 +204,6 @@ const shouldMoveToNextWord = (typedWord: string, keyPressed: string): boolean =>
     return typedWord && keyPressed === ' ';
 }
 
-
-/**
- * returns incremental correctness of the word as user is typing
- * TODO: use wordCharArray and typedCharArray instead of word and typed word
- */
-const wordIsCorrect = (targetWord: string, typedWord: string) => {
-    if (typedWord.length < targetWord.length) {
-        for (let i = 0; i < typedWord.length; i++) {
-            if (typedWord[i] !== targetWord[i]) {
-                return false;
-            }
-        }
-        return true;
-    }
-    return typedWord.trim() === targetWord;
-}
-
-const getInputClass = (word: string, typedWord: string): string => {
-    return wordIsCorrect(word, typedWord) ? "typing-input" : "typing-input incorrect-input";
-}
 
 export const getWordDataList = (selectedWords: string[]): WordData[] => {
     const data: WordData[] = selectedWords.map((word: string, index: number) => {
@@ -225,7 +213,8 @@ export const getWordDataList = (selectedWords: string[]): WordData[] => {
             wordCharArray: word.split(''),
             typedCharArray: [],
             incorrectAttempts: [],
-            cssClass: ""
+            cssClass: "",
+            mistyped: false
         }
     });
     data[0] = { ...data[0], cssClass: "highlighted" };

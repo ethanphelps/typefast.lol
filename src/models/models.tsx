@@ -157,6 +157,7 @@ export type PracticeSourceLabelDisplay = PracticeSourceLabelOptions[keyof Practi
  */
 export type OptionItemConfiguration = FixedWordExerciseLength | TimedExerciseDuration | QuotesExerciseLength | PunctuationOption | NumberOption | WordsSourceLabel | QuotesSourceLabel | ForceCorrectionsOption | PracticeFormat | PracticeSourceLabel;
 export type OptionItemValue = FixedWordExerciseLengthValue | TimedExerciseDurationValue | QuotesExerciseLengthValue | PunctuationOptionValue | NumberOptionValue | WordsSourceLabelValue | QuotesSourceLabelValue | ForceCorrectionOptionValue | PracticeFormatValue | PracticeSourceLabelValue;
+export type OptionItemDisplay = FixedWordExerciseLengthDisplay | TimedExerciseDurationDisplay | QuotesExerciseLengthDisplay | PunctuationOptionDisplay | NumberOptionDisplay | WordsSourceLabelDisplay | QuotesSourceLabelDisplay | ForceCorrectionOptionDisplay | PracticeFormatDisplay | PracticeSourceLabelDisplay;
 export const OptionValuesByCategory: Record<OptionCategoryValue, OptionItemConfiguration[]> = {
     [OptionCategories.COUNT.value]: Object.values(FixedWordExerciseLengths),
     [OptionCategories.DURATION.value]: Object.values(TimedExerciseDurations),
@@ -201,7 +202,7 @@ export const ModeOptions: Record<TypingMode, OptionCategory[]> = {
 export const StatePropertiesByCategory: Record<OptionCategoryValue, keyof ModeState> = {
     [OptionCategories.COUNT.value]: "wordCount",
     [OptionCategories.DURATION.value]: "duration",
-    [OptionCategories.LENGTH.value]: "wordCount",
+    [OptionCategories.LENGTH.value]: "quotesLength",
     [OptionCategories.PUNCTUATION.value]: "punctuation",
     [OptionCategories.NUMBERS.value]: "numbers",
     [OptionCategories.WORDS_SOURCE.value]: "wordsSource",
