@@ -7,6 +7,7 @@ import { MODE_STATE, ModeState, initialModeState, modeOptionsReducer } from '../
 import WordsService from '../../services/words/words-service';
 import { ExerciseState, ExerciseStatus, exerciseReducer } from '../../reducers/exercise-reducer';
 import Stats from '../../components/Stats';
+import SlowMissedWords from '../../components/SlowMissedWords';
 
 
 const Header = ({ }): React.ReactElement => {
@@ -72,42 +73,45 @@ export const Landing = (): React.ReactElement => {
             }
         }
     )
-
+    
+    const displayClass = state.status === ExerciseStatus.IN_PROGRESS ? "body-container typing" : "body-container";
 
     return (
         <div className="landing-container">
             <Header />
-            <div className="body-container">
+            <div className={displayClass}>
                 <div id="center-area">
-                    <section>
+                    <section className="section">
                         {
                             state.status === ExerciseStatus.COMPLETE ? 
                             <Stats exerciseState={state} modeState={modeState} wordsService={wordsService} dispatch={dispatch} />
                             : <></>
                         }
                     </section>
-                    {
-                        state.status === ExerciseStatus.READY ? 
-                        <ModeMenu
-                            state={modeState}
-                            dispatch={modeDispatch}
+                    <section className="section">
+                        {
+                            state.status === ExerciseStatus.READY ? 
+                            <ModeMenu
+                                state={modeState}
+                                dispatch={modeDispatch}
+                            />
+                            : <></>
+                        }
+                        <TypingArea
+                            state={state}
+                            dispatch={dispatch}
+                            modeState={modeState}
+                            wordsService={wordsService}
                         />
-                        : <></>
-                    }
-                    <TypingArea
-                        state={state}
-                        dispatch={dispatch}
-                        modeState={modeState}
-                        wordsService={wordsService}
-                    />
-                    <section>
+                    </section>
+                    <section className="section">
                         {
                             state.status === ExerciseStatus.COMPLETE ? 
-                            <div></div>
+                            <SlowMissedWords exerciseState={state} />
                             : <></>
                         }
                     </section>
-                    <section>
+                    <section className="section">
                         {
                             state.status === ExerciseStatus.COMPLETE ? 
                             <div></div>

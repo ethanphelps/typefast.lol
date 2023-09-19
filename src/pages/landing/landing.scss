@@ -21,24 +21,29 @@ body {
 .body-container {
   display: flex;
   justify-content: center;
-  align-items: center;
+  // align-items: center;
   flex-grow: 1;
-  // min-height: 100vh;
-
   position: relative;
 }
-
-.center-area {
-  display: flex;
-  flex-direction: column;
-  // flex-basis: 640px;
-  // max-width: 850px;
-  // min-width: 850px;
-
-  width: 850px;
-  overflow: hidden;
+.body-container.typing {
   align-items: center;
-  justify-content: center;
+}
+
+// .center-area {
+//   display: flex;
+//   flex-direction: column;
+//   width: 850px;
+//   overflow: hidden;
+//   align-items: center;
+//   justify-content: center;
+// }
+.center-area {
+  display: grid;
+  overflow: hidden;
+  grid-template-rows: auto 1fr auto auto;
+}
+.section {
+  transition: top 0.8s ease-in-out, left 0.8s ease-in-out;
 }
 
 .mode-menu-container {
@@ -128,10 +133,6 @@ body {
   min-width: 900px;
   // min-width: 100%;
   // max-width: 100%;
-  padding: 20px;
-  background-color: colors.$typing-container-color;
-  border: none;
-  border-radius: 0.4rem;
 }
 
 .typing-display {
@@ -263,6 +264,7 @@ body {
   cursor: pointer;
   stroke: colors.$accent-color;
   transition: stroke 0.15s ease-in-out;
+  line-height: 0;
 }
 .icon-button:hover {
   stroke: colors.$font-color;
@@ -341,12 +343,6 @@ body {
 
 // --- Summary Stats --- //
 
-.typefast-card {
-  border-radius: 0.4rem;
-  background-color: colors.$typing-container-color;
-  margin-bottom: 15px;
-}
-
 .stats-container {
   display: grid;
   grid-template-rows: 3fr 1fr;
@@ -359,6 +355,7 @@ body {
   column-gap: 20px;
   height: 3rem;
   align-items: flex-end;
+  padding-bottom: 5px;
 }
 
 #stats-display-container {
@@ -398,3 +395,58 @@ body {
 }
 
 // --- Summary Stats --- //
+
+
+// --- Missed and Slow Words --- //
+
+.typefast-card {
+  padding: 20px;
+  background-color: colors.$typing-container-color;
+  border: none;
+  border-radius: 0.4rem;
+  margin-bottom: 20px;
+}
+
+#slow-missed-words-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 20px;
+}
+
+.words-list {
+  display: flex;
+  flex-direction: column;
+  row-gap: 5px;
+  align-self: start;
+  padding: 20px 30px 20px 30px;
+
+  ul {
+    list-style: none;
+  }
+
+  > div {
+    display: flex;
+    justify-content: center;
+  }
+}
+
+.horizontal-divider {
+  background-color: colors.$accent-color;
+  height: 5px;
+  width: 80%;
+  border-radius: 0.4rem;
+  margin-bottom: 5px;
+}
+
+.word-list-item {
+  display: flex;
+  justify-content: space-between;
+  transition: background-color 0.3s ease-in-out;
+  padding-left: 5px;
+  border-radius: 0.4rem;
+}
+.word-list-item:hover {
+  background-color: colors.$accent-color;
+}
+
+// --- Missed and Slow Words --- //

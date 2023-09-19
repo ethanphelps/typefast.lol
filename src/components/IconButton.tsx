@@ -3,7 +3,6 @@ import React, { MouseEventHandler } from "react";
 interface IconButtonProps {
     image: React.ReactElement;
     path?: string;
-    // onClick?: (event: React.MouseEvent<HTMLDivElement>) => void;
     onClick?: MouseEventHandler<HTMLAnchorElement>
 }
 export const IconButton = ({

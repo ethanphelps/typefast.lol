@@ -142,13 +142,13 @@ export const TypingArea = ({
         });
 
         const characterTyped = inputValue[inputValue.length - 1];
-        if (shouldMoveToNextWord(inputValue, characterTyped)) {
+        if (shouldMoveToNextWord(inputValue, characterTyped) || endAfterLastCharacter(state, inputValue)) {
             handleWordComplete(inputValue.trim());
-        }
+        } 
     }
 
     return (
-        <div className="typing-container">
+        <div className="typing-container typefast-card">
             <article className="typing-display">
                 {
                     state.wordData
@@ -180,6 +180,9 @@ export const TypingArea = ({
     );
 }
 
+const endAfterLastCharacter = (state: ExerciseState, inputValue: string): boolean => {
+    return state.currentWord + 1 === state.words.length && inputValue.trim() === state.words[state.currentWord];
+}
 
 const checkEndOfExercise = (exerciseState: ExerciseState, modeState: ModeState): boolean => {
     if (modeState.mode === TypingModes.FIXED || modeState.mode === TypingModes.QUOTES) {

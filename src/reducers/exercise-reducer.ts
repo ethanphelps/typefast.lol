@@ -74,8 +74,8 @@ export const exerciseReducer = (state: ExerciseState, action: DispatchInput): Ex
             return {
                 ...state,
                 ...action.payload,
-                status: ExerciseStatus.COMPLETE, // TODO: remove this
-                // status: ExerciseStatus.READY,
+                // status: ExerciseStatus.COMPLETE, // TODO: remove this
+                status: ExerciseStatus.READY,
                 currentWord: 0,
                 cursor: 0,
                 typingStarted: false,
@@ -208,11 +208,11 @@ export const exerciseReducer = (state: ExerciseState, action: DispatchInput): Ex
     }
 }
 
-const getMistypedWords = (wordData: WordData[]): string[] => {
-    const mistyped: string[] = [];
+export const getMistypedWords = (wordData: WordData[]): WordData[] => {
+    const mistyped: WordData[] = [];
     wordData.forEach((word: WordData) => {
         if(word.mistyped) {
-            mistyped.push(word.word);
+            mistyped.push(word);
         }
     })
     return mistyped;
