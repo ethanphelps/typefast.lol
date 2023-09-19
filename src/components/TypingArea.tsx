@@ -71,16 +71,6 @@ export const TypingArea = ({
         });
         inputRef.current.focus();
     }
-    const retryExercise = () => {
-        dispatch({
-            type: TypingActions.RESET,
-            payload: {
-                words: wordsService.getWords(),
-                wordData: getWordDataList(wordsService.getWords())
-            }
-        });
-        inputRef.current.focus();
-    }
 
     const isDeleteInputType = (event: InputEvent): boolean => {
         return deleteInputTypes.includes(event.inputType);
@@ -174,7 +164,7 @@ export const TypingArea = ({
                         : null
                 }
             </article>
-            <div className="input-row">
+            {/* <div className="input-row"> */}
                 <input
                     id="invisible-input"
                     type="text"
@@ -183,9 +173,9 @@ export const TypingArea = ({
                     ref={inputRef}
                 >
                 </input>
-                <button type="button" className="retry-button" onClick={resetStates}>next</button>
-                <button type="button" className="retry-button" onClick={retryExercise}>retry</button>
-            </div>
+                {/* <button type="button" className="retry-button" onClick={resetStates}>next</button>
+                <button type="button" className="retry-button" onClick={retryExercise}>retry</button> */}
+            {/* </div> */}
         </div>
     );
 }

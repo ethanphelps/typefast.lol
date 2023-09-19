@@ -38,7 +38,15 @@ export interface DispatchInput {
     payload?: Partial<ExerciseState> & Partial<ActionPayload>;
 }
 
+export const ExerciseStatus = {
+    READY: "READY",
+    IN_PROGRESS: "IN_PROGRESS",
+    COMPLETE: "COMPLETE"
+} as const;
+type ExerciseStatusValue = ObjectValues<typeof ExerciseStatus>;
+
 export interface ExerciseState {
+    status: ExerciseStatusValue;
     words: string[];
     wordData: WordData[];
     currentWord: number;
@@ -66,6 +74,8 @@ export const exerciseReducer = (state: ExerciseState, action: DispatchInput): Ex
             return {
                 ...state,
                 ...action.payload,
+                status: ExerciseStatus.COMPLETE, // TODO: remove this
+                // status: ExerciseStatus.READY,
                 currentWord: 0,
                 cursor: 0,
                 typingStarted: false,
@@ -80,6 +90,7 @@ export const exerciseReducer = (state: ExerciseState, action: DispatchInput): Ex
             console.debug('Initial states:', state);
             return {
                 ...state,
+                status: ExerciseStatus.IN_PROGRESS,
                 typingStarted: true,
                 startTime: Date.now(),
                 timeoutId: setTimedModeTimer(action.payload.modeState, action.payload.dispatch)
@@ -184,6 +195,7 @@ export const exerciseReducer = (state: ExerciseState, action: DispatchInput): Ex
             return {
                 ...state,
                 ...action.payload,
+                status: ExerciseStatus.COMPLETE,
                 wpm: wpm,
                 accuracy: accuracy,
                 endTime: Date.now(),

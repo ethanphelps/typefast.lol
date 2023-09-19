@@ -31,7 +31,12 @@ body {
 .center-area {
   display: flex;
   flex-direction: column;
-  flex-basis: 640px;
+  // flex-basis: 640px;
+  // max-width: 850px;
+  // min-width: 850px;
+
+  width: 850px;
+  overflow: hidden;
   align-items: center;
   justify-content: center;
 }
@@ -69,7 +74,6 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  // align-items: center;
   row-gap: 5px;
 }
 
@@ -90,7 +94,6 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  // align-items: center;
   row-gap: 10px;
 }
 
@@ -121,7 +124,10 @@ body {
 .typing-container {
   display: flex;
   flex-direction: column;
-  max-width: 640px;
+  max-width: 900px;
+  min-width: 900px;
+  // min-width: 100%;
+  // max-width: 100%;
   padding: 20px;
   background-color: colors.$typing-container-color;
   border: none;
@@ -253,6 +259,15 @@ body {
   position: absolute;
 }
 
+.icon-button {
+  cursor: pointer;
+  stroke: colors.$accent-color;
+  transition: stroke 0.15s ease-in-out;
+}
+.icon-button:hover {
+  stroke: colors.$font-color;
+}
+
 
 // --- Mode Select Input
 
@@ -322,26 +337,64 @@ body {
   // z-index: 2;
 }
 
-/* Add styles for the "open" class when the dropdown is open */
-// .custom-select.open .select-display {
-//   border-bottom-right-radius: 0;
-//   border-bottom-left-radius: 0;
-// }
-
-// .custom-select.open .select-options {
-//   display: block;
-//   border: 1px solid #ccc;
-//   border-top: none;
-// }
-
-// .custom-select.open .select-options li {
-//   padding: 10px;
-//   cursor: pointer;
-// }
-
-// /* Highlight the selected option when open */
-// .custom-select.open .select-options li:hover {
-//   background-color: #f0f0f0;
-// }
-
 // --- Mode Select Input
+
+// --- Summary Stats --- //
+
+.typefast-card {
+  border-radius: 0.4rem;
+  background-color: colors.$typing-container-color;
+  margin-bottom: 15px;
+}
+
+.stats-container {
+  display: grid;
+  grid-template-rows: 3fr 1fr;
+  margin-bottom: 10px;
+}
+
+#summary-buttons-container {
+  display: flex;
+  justify-content: center;
+  column-gap: 20px;
+  height: 3rem;
+  align-items: flex-end;
+}
+
+#stats-display-container {
+  display: grid;
+  grid-template-rows: 2fr 1fr;
+}
+
+#big-stats {
+  display: flex;
+  column-gap: 15px;
+  justify-content: center;
+  align-items: flex-end;
+  padding-bottom: 10px;
+}
+
+.stats-header {
+  font-size: 3rem;
+  height: 3rem;
+  display: flex;
+  align-items: center;
+}
+
+#stats-divider {
+  background-color: colors.$accent-color;
+  height: 3rem;
+  width: 4px;
+  margin: 0 20px 0 20px;
+  border-radius: 0.4rem;
+}
+
+#little-stats {
+  display: flex;
+  justify-content: center;
+  column-gap: 10px;
+  font-size: 0.9rem;
+  color: colors.$accent-color;
+}
+
+// --- Summary Stats --- //

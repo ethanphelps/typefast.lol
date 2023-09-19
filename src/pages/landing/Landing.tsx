@@ -5,7 +5,8 @@ import { WordsSource, WordsSources } from '../../services/words/words.interface'
 import { ModeMenu } from '../../components/ModeMenu';
 import { MODE_STATE, ModeState, initialModeState, modeOptionsReducer } from '../../reducers/mode-reducer';
 import WordsService from '../../services/words/words-service';
-import { ExerciseState, exerciseReducer } from '../../reducers/exercise-reducer';
+import { ExerciseState, ExerciseStatus, exerciseReducer } from '../../reducers/exercise-reducer';
+import Stats from '../../components/Stats';
 
 
 const Header = ({ }): React.ReactElement => {
@@ -41,6 +42,8 @@ export const Landing = (): React.ReactElement => {
         return new WordsService(modeState);
     }, [modeState.wordCount, modeState.wordsSource, modeState.mode, modeState.quotesLength, modeState.quotesSource]);
 
+
+
     /**
      * ExerciseState with a dispatch function where state is lazily initialized to the result of wordsService.getRandomizedWords()
      * Unless there's a page refresh, wordsService will always be the initial value returned by useMemo even if props changing causes
@@ -53,6 +56,7 @@ export const Landing = (): React.ReactElement => {
         (wordsService: WordsService): ExerciseState => {
             console.log("setting initial states for the reducers!");
             return {
+                status: ExerciseStatus.COMPLETE,
                 words: wordsService.getWords(),
                 wordData: getWordDataList(wordsService.getWords()),
                 currentWord: 0,
@@ -73,19 +77,43 @@ export const Landing = (): React.ReactElement => {
     return (
         <div className="landing-container">
             <Header />
-            <div>{state.wpm}</div>
             <div className="body-container">
                 <div id="center-area">
-                    <ModeMenu
-                        state={modeState}
-                        dispatch={modeDispatch}
-                    />
+                    <section>
+                        {
+                            state.status === ExerciseStatus.COMPLETE ? 
+                            <Stats exerciseState={state} modeState={modeState} wordsService={wordsService} dispatch={dispatch} />
+                            : <></>
+                        }
+                    </section>
+                    {
+                        state.status === ExerciseStatus.READY ? 
+                        <ModeMenu
+                            state={modeState}
+                            dispatch={modeDispatch}
+                        />
+                        : <></>
+                    }
                     <TypingArea
                         state={state}
                         dispatch={dispatch}
                         modeState={modeState}
                         wordsService={wordsService}
                     />
+                    <section>
+                        {
+                            state.status === ExerciseStatus.COMPLETE ? 
+                            <div></div>
+                            : <></>
+                        }
+                    </section>
+                    <section>
+                        {
+                            state.status === ExerciseStatus.COMPLETE ? 
+                            <div></div>
+                            : <></>
+                        }
+                    </section>
                 </div>
             </div>
         </div>
