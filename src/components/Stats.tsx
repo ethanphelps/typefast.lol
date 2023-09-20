@@ -14,20 +14,20 @@ interface ExerciseType {
 }
 const getExerciseType = (state: ModeState): ExerciseType => {
     let size, mode, source;
-    switch(state.mode) {
-        case(TypingModes.FIXED):
+    switch (state.mode) {
+        case (TypingModes.FIXED):
             return {
                 size: JSON.stringify(state.wordCount),
                 mode: "words",
                 source: state.wordsSource
             }
-        case(TypingModes.TIMED):
+        case (TypingModes.TIMED):
             return {
                 size: state.duration <= 60 ? JSON.stringify(state.duration) : JSON.stringify(state.duration / 60),
                 mode: state.duration <= 60 ? "seconds" : "minutes",
                 source: state.wordsSource,
             }
-        case(TypingModes.QUOTES):
+        case (TypingModes.QUOTES):
             return {
                 size: state.quotesLength,
                 mode: "quote",
@@ -44,32 +44,34 @@ const getExerciseType = (state: ModeState): ExerciseType => {
  * 
  * needs to take in mode to display the correct exercise type
  */
-const Stats = ({ exerciseState, modeState, wordsService, dispatch }: { exerciseState: ExerciseState, modeState: ModeState, wordsService: WordsService, dispatch: React.Dispatch<DispatchInput> }): React.ReactElement => {
-    const nextExercise = () => {
-        wordsService.resetWords();
-        const newWords = wordsService.getWords();
-        dispatch({
-            type: TypingActions.RESET,
-            payload: {
-                words: newWords,
-                wordData: getWordDataList(newWords)
-            }
-        });
+const Stats = ({ exerciseState, modeState, nextExercise, retryExercise, practiceMissedWords }:
+    {
+        exerciseState: ExerciseState,
+        modeState: ModeState,
+        nextExercise: React.MouseEventHandler,
+        retryExercise: React.MouseEventHandler,
+        practiceMissedWords: React.MouseEventHandler
     }
+): React.ReactElement => {
 
-    const retryExercise = () => {
-        dispatch({
-            type: TypingActions.RESET,
-            payload: {
-                words: wordsService.getWords(),
-                wordData: getWordDataList(wordsService.getWords())
-            }
-        });
-    }
-    
-    const exercise = getExerciseType(modeState);
     const wpmDisplay = Math.floor(exerciseState.wpm);
     const accuracyDisplay = Math.floor(exerciseState.accuracy);
+
+    const getExerciseName = (): React.ReactElement => {
+        const exercise = getExerciseType(modeState);
+        if(modeState.mode === TypingModes.PRACTICE) {
+            return (
+                <span>practicing missed / slow words</span>
+            );
+        }
+        return(
+            <>
+                <span>{exercise.size} {exercise.mode}</span>
+                <span> - </span>
+                <span>{exercise.source}</span>
+            </>
+        );
+    }
 
     return (
         <section className='stats-container'>
@@ -82,16 +84,14 @@ const Stats = ({ exerciseState, modeState, wordsService, dispatch }: { exerciseS
                     <header className="stats-header">{accuracyDisplay}% accuracy</header>
                 </div>
                 <div id="little-stats">
-                    <span>{exercise.size} {exercise.mode}</span>
-                    <span> - </span>
-                    <span>{exercise.source}</span>
+                    { getExerciseName() }
                 </div>
             </div>
             <div id="summary-buttons-container">
-                <IconButton image={<NextExercise />} onClick={nextExercise}/>
-                <IconButton image={<RedoExercise />} onClick={retryExercise}/>
-                <IconButton image={<PracticeMissedSlowWords />}/>
-                <IconButton image={<SaveToDifficultExercises />}/>
+                <IconButton image={<NextExercise />} onClick={nextExercise} />
+                <IconButton image={<RedoExercise />} onClick={retryExercise} />
+                <IconButton image={<PracticeMissedSlowWords />} onClick={practiceMissedWords} />
+                <IconButton image={<SaveToDifficultExercises />} />
                 {/* <div>next</div> */}
                 {/* <div>redo</div>
                 <div>practice</div>

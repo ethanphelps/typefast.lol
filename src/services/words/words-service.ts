@@ -16,21 +16,11 @@ const Quotes = _quotes as QuotesCollection;
  * TODO: add way to store source of quote for display during quotes mode 
  */
 export default class WordsService {
-    private words: string[] = [];
     private state: ModeState;
 
     constructor(modeState: ModeState) {
         console.debug(`Initializing WordsService with source ${modeState.wordsSource}`);
         this.state = modeState;
-        this.resetWords();
-    }
-
-    public resetWords(): void {
-        if(this.state.mode === TypingModes.FIXED || this.state.mode === TypingModes.TIMED || this.state.mode === TypingModes.FREEFORM || this.state.mode === TypingModes.PRACTICE) {
-            this.words = this.getRandomWords();
-        } else if(this.state.mode === TypingModes.QUOTES) {
-            this.words = this.getQuote();
-        }
     }
 
     private getRandomWords(): string[] {
@@ -57,6 +47,12 @@ export default class WordsService {
     }
 
     public getWords(): string[] {
-        return this.words;
+        if(this.state.mode === TypingModes.FIXED || this.state.mode === TypingModes.TIMED || this.state.mode === TypingModes.FREEFORM) {
+            return this.getRandomWords();
+        } else if(this.state.mode === TypingModes.QUOTES) {
+            return this.getQuote();
+        }
+        return [""];
     }
+
 }

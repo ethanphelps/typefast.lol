@@ -38,8 +38,8 @@ const SlowMissedWords = ({ exerciseState }: { exerciseState: ExerciseState }): R
                 </div>
                 <ul>
                     {
-                        mistypedWords.map((word: WordData) => {
-                            return <WordListItem word={word.word} onClick={wordListItemClicked} />
+                        mistypedWords.map((word: WordData, index: number) => {
+                            return <WordListItem word={word.word} onClick={wordListItemClicked} key={index}/>
                         })
                     }
                 </ul>
@@ -54,7 +54,7 @@ const SlowMissedWords = ({ exerciseState }: { exerciseState: ExerciseState }): R
                 <ul>
                     <WordListItem word={"exceptionalism"} onClick={wordListItemClicked} />
                     {
-                        tempSlowWords.map((word: string) => <WordListItem word={word} onClick={wordListItemClicked} />)
+                        tempSlowWords.map((word: string, index: number) => <WordListItem word={word} onClick={wordListItemClicked} key={index}/>)
                     }
                 </ul>
             </section>

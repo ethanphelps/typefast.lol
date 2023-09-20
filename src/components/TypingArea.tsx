@@ -14,24 +14,20 @@ interface TypingAreaProps {
     state: ExerciseState;
     dispatch: React.Dispatch<React.ReducerAction<React.Reducer<ExerciseState, DispatchInput>>>;
     modeState: ModeState;
-    wordsService: WordsService;
 }
 // should mode state be passed together as one prop value or as individual prop values?
 export const TypingArea = ({
     state,
     dispatch,
     modeState,
-    wordsService
 }: TypingAreaProps): React.ReactElement => {
     const inputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         inputRef.current.focus();
-
         const focusInputElement = (event: KeyboardEvent) => {
             inputRef.current.focus();
         }
-
         document.addEventListener('keydown', focusInputElement);
         document.addEventListener('keydown', handleKeyDown);
         return () => {
@@ -40,10 +36,10 @@ export const TypingArea = ({
         };
     }, [])
 
-    useEffect(() => {
-        resetStates();
-    }, [wordsService])
 
+    /**
+     * critical logic for making backspace to previous words work!
+     */
     useEffect(() => {
         console.debug("input.value: ", `"${inputRef.current.value}"`);
         const handleBeforeInput = (event: InputEvent) => {
@@ -59,18 +55,6 @@ export const TypingArea = ({
         }
     }, [state]);
 
-    const resetStates = () => {
-        wordsService.resetWords();
-        const newWords = wordsService.getWords();
-        dispatch({
-            type: TypingActions.RESET,
-            payload: {
-                words: newWords,
-                wordData: getWordDataList(newWords)
-            }
-        });
-        inputRef.current.focus();
-    }
 
     const isDeleteInputType = (event: InputEvent): boolean => {
         return deleteInputTypes.includes(event.inputType);
@@ -173,8 +157,6 @@ export const TypingArea = ({
                     ref={inputRef}
                 >
                 </input>
-                {/* <button type="button" className="retry-button" onClick={resetStates}>next</button>
-                <button type="button" className="retry-button" onClick={retryExercise}>retry</button> */}
             {/* </div> */}
         </div>
     );
@@ -185,7 +167,7 @@ const endAfterLastCharacter = (state: ExerciseState, inputValue: string): boolea
 }
 
 const checkEndOfExercise = (exerciseState: ExerciseState, modeState: ModeState): boolean => {
-    if (modeState.mode === TypingModes.FIXED || modeState.mode === TypingModes.QUOTES) {
+    if (modeState.mode === TypingModes.FIXED || modeState.mode === TypingModes.QUOTES || modeState.mode === TypingModes.PRACTICE) {
         return exerciseState.currentWord + 1 >= exerciseState.words.length;
     } else if (modeState.mode === TypingModes.TIMED) {
         return false;
@@ -199,6 +181,9 @@ const shouldMoveToNextWord = (typedWord: string, keyPressed: string): boolean =>
 
 
 export const getWordDataList = (selectedWords: string[]): WordData[] => {
+    if(!selectedWords) {
+        return [];
+    }
     const data: WordData[] = selectedWords.map((word: string, index: number) => {
         return {
             id: index,
