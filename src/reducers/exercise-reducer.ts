@@ -43,7 +43,7 @@ export const ExerciseStatus = {
     IN_PROGRESS: "IN_PROGRESS",
     COMPLETE: "COMPLETE"
 } as const;
-type ExerciseStatusValue = ObjectValues<typeof ExerciseStatus>;
+export type ExerciseStatusValue = ObjectValues<typeof ExerciseStatus>;
 
 export interface ExerciseState {
     status: ExerciseStatusValue;

@@ -41,9 +41,18 @@ body {
   display: grid;
   overflow: hidden;
   grid-template-rows: auto 1fr auto auto;
+  // position: relative;
 }
 .section {
   transition: top 0.8s ease-in-out, left 0.8s ease-in-out;
+}
+
+// #typing-area-section {
+//   position: relative;
+// }
+
+#mode-menu-wrapper {
+  position: relative;
 }
 
 .mode-menu-container {
@@ -55,6 +64,12 @@ body {
   border-radius: 0.4rem;
   padding: 20px;
   // max-width: 640px; // use this to explicitly prevent mode menu from overflowing
+  
+  position: absolute;
+  bottom: -10px;
+  left: 0;
+  right: 0;
+  // top: 0;
 }
 
 #mode-menu-divider {
@@ -347,6 +362,7 @@ body {
   display: grid;
   grid-template-rows: 3fr 1fr;
   margin-bottom: 10px;
+  margin-top: 2rem;
 }
 
 #summary-buttons-container {

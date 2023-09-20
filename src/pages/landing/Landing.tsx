@@ -5,7 +5,7 @@ import { WordsSource, WordsSources } from '../../services/words/words.interface'
 import { ModeMenu } from '../../components/ModeMenu';
 import { MODE_STATE, ModeState, initialModeState, modeOptionsReducer } from '../../reducers/mode-reducer';
 import WordsService from '../../services/words/words-service';
-import { ExerciseState, ExerciseStatus, exerciseReducer } from '../../reducers/exercise-reducer';
+import { ExerciseState, ExerciseStatus, ExerciseStatusValue, exerciseReducer } from '../../reducers/exercise-reducer';
 import Stats from '../../components/Stats';
 import SlowMissedWords from '../../components/SlowMissedWords';
 
@@ -74,7 +74,7 @@ export const Landing = (): React.ReactElement => {
         }
     )
     
-    const displayClass = state.status === ExerciseStatus.IN_PROGRESS ? "body-container typing" : "body-container";
+    const displayClass = ([ExerciseStatus.READY, ExerciseStatus.IN_PROGRESS] as ExerciseStatusValue[]).includes(state.status) ? "body-container typing" : "body-container";
 
     return (
         <div className="landing-container">
@@ -88,15 +88,17 @@ export const Landing = (): React.ReactElement => {
                             : <></>
                         }
                     </section>
-                    <section className="section">
-                        {
-                            state.status === ExerciseStatus.READY ? 
-                            <ModeMenu
-                                state={modeState}
-                                dispatch={modeDispatch}
-                            />
-                            : <></>
-                        }
+                    <section id="typing-area-section" className="section">
+                        <div id="mode-menu-wrapper">
+                            {
+                                state.status === ExerciseStatus.READY ? 
+                                <ModeMenu
+                                    state={modeState}
+                                    dispatch={modeDispatch}
+                                />
+                                : <></>
+                            }
+                        </div>
                         <TypingArea
                             state={state}
                             dispatch={dispatch}
