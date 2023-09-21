@@ -21,19 +21,38 @@ body {
 .body-container {
   display: flex;
   justify-content: center;
-  align-items: center;
+  // align-items: center;
   flex-grow: 1;
-  // min-height: 100vh;
-
   position: relative;
 }
-
-.center-area {
-  display: flex;
-  flex-direction: column;
-  flex-basis: 640px;
+.body-container.typing {
   align-items: center;
-  justify-content: center;
+}
+
+// .center-area {
+//   display: flex;
+//   flex-direction: column;
+//   width: 850px;
+//   overflow: hidden;
+//   align-items: center;
+//   justify-content: center;
+// }
+.center-area {
+  display: grid;
+  overflow: hidden;
+  grid-template-rows: auto 1fr auto auto;
+  // position: relative;
+}
+.section {
+  transition: top 0.8s ease-in-out, left 0.8s ease-in-out;
+}
+
+// #typing-area-section {
+//   position: relative;
+// }
+
+#mode-menu-wrapper {
+  position: relative;
 }
 
 .mode-menu-container {
@@ -45,6 +64,12 @@ body {
   border-radius: 0.4rem;
   padding: 20px;
   // max-width: 640px; // use this to explicitly prevent mode menu from overflowing
+  
+  position: absolute;
+  bottom: -10px;
+  left: 0;
+  right: 0;
+  // top: 0;
 }
 
 #mode-menu-divider {
@@ -69,7 +94,6 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  // align-items: center;
   row-gap: 5px;
 }
 
@@ -90,7 +114,6 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  // align-items: center;
   row-gap: 10px;
 }
 
@@ -121,11 +144,10 @@ body {
 .typing-container {
   display: flex;
   flex-direction: column;
-  max-width: 640px;
-  padding: 20px;
-  background-color: colors.$typing-container-color;
-  border: none;
-  border-radius: 0.4rem;
+  max-width: 900px;
+  min-width: 900px;
+  // min-width: 100%;
+  // max-width: 100%;
 }
 
 .typing-display {
@@ -253,6 +275,16 @@ body {
   position: absolute;
 }
 
+.icon-button {
+  cursor: pointer;
+  stroke: colors.$accent-color;
+  transition: stroke 0.15s ease-in-out;
+  line-height: 0;
+}
+.icon-button:hover {
+  stroke: colors.$font-color;
+}
+
 
 // --- Mode Select Input
 
@@ -322,26 +354,115 @@ body {
   // z-index: 2;
 }
 
-/* Add styles for the "open" class when the dropdown is open */
-// .custom-select.open .select-display {
-//   border-bottom-right-radius: 0;
-//   border-bottom-left-radius: 0;
-// }
-
-// .custom-select.open .select-options {
-//   display: block;
-//   border: 1px solid #ccc;
-//   border-top: none;
-// }
-
-// .custom-select.open .select-options li {
-//   padding: 10px;
-//   cursor: pointer;
-// }
-
-// /* Highlight the selected option when open */
-// .custom-select.open .select-options li:hover {
-//   background-color: #f0f0f0;
-// }
-
 // --- Mode Select Input
+
+// --- Summary Stats --- //
+
+.stats-container {
+  display: grid;
+  grid-template-rows: 3fr 1fr;
+  margin-bottom: 10px;
+  margin-top: 2rem;
+}
+
+#summary-buttons-container {
+  display: flex;
+  justify-content: center;
+  column-gap: 20px;
+  height: 3rem;
+  align-items: flex-end;
+  padding-bottom: 5px;
+}
+
+#stats-display-container {
+  display: grid;
+  grid-template-rows: 2fr 1fr;
+}
+
+#big-stats {
+  display: flex;
+  column-gap: 15px;
+  justify-content: center;
+  align-items: flex-end;
+  padding-bottom: 10px;
+}
+
+.stats-header {
+  font-size: 3rem;
+  height: 3rem;
+  display: flex;
+  align-items: center;
+}
+
+#stats-divider {
+  background-color: colors.$accent-color;
+  height: 3rem;
+  width: 4px;
+  margin: 0 20px 0 20px;
+  border-radius: 0.4rem;
+}
+
+#little-stats {
+  display: flex;
+  justify-content: center;
+  column-gap: 10px;
+  font-size: 0.9rem;
+  color: colors.$accent-color;
+}
+
+// --- Summary Stats --- //
+
+
+// --- Missed and Slow Words --- //
+
+.typefast-card {
+  padding: 20px;
+  background-color: colors.$typing-container-color;
+  border: none;
+  border-radius: 0.4rem;
+  margin-bottom: 20px;
+}
+
+#slow-missed-words-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 20px;
+}
+
+.words-list {
+  display: flex;
+  flex-direction: column;
+  row-gap: 5px;
+  align-self: start;
+  padding: 20px 30px 20px 30px;
+
+  ul {
+    list-style: none;
+  }
+
+  > div {
+    display: flex;
+    justify-content: center;
+  }
+}
+
+.horizontal-divider {
+  background-color: colors.$accent-color;
+  height: 5px;
+  width: 80%;
+  border-radius: 0.4rem;
+  margin-bottom: 5px;
+}
+
+.word-list-item {
+  display: flex;
+  justify-content: space-between;
+  transition: background-color 0.3s ease-in-out;
+  padding-left: 5px;
+  border-radius: 0.4rem;
+}
+.word-list-item:hover {
+  background-color: colors.$accent-color;
+}
+
+// --- Missed and Slow Words --- //
