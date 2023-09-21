@@ -33,7 +33,8 @@ export const ModeActions = {
     PRACTICE_SOURCE_SET: 'practice_source-set',
     FORCE_CORRECTIONS_SET: 'force_corrections-set',
     PRACTICE_FORMAT_SET: 'practice_format-set',
-    LOAD_FROM_SESSION_STORAGE: 'load-from-session-storage'
+    LOAD_FROM_SESSION_STORAGE: 'load-from-session-storage',
+    QUOTE_SET: 'quote-set'
 } as const;
 export type ModeAction = ObjectValues<typeof ModeActions>;
 
@@ -77,6 +78,7 @@ export interface ModeState {
     // [ModeStateProperties.FORCE_CORRECTIONS]: boolean;
     // [ModeStateProperties.PRACTICE_FORMAT]: PracticeFormatValue;
     mode: TypingMode;
+    modePriorToPractice: TypingMode;
     wordCount: FixedWordExerciseLengthValue;
     duration: TimedExerciseDurationValue;
     quotesLength: QuotesExerciseLengthValue;
@@ -93,6 +95,7 @@ export const MODE_STATE = 'MODE_STATE';
 
 export const initialModeState: ModeState = {
     mode: TypingModes.FIXED,
+    modePriorToPractice: TypingModes.FIXED,
     wordCount: FixedWordExerciseLengths.MEDIUM.value,
     duration: TimedExerciseDurations.MEDIUM.value,
     quotesLength: QuotesExerciseLengths.MEDIUM.value,
@@ -111,12 +114,21 @@ export const modeOptionsReducer = (state: ModeState, action: ModeDispatchInput):
     setStorage({ ...state, ...action.payload }, action.type);
     switch (action.type) {
         // When Mode is set, need to default options that aren't already set or are set with invalid options
-        case (ModeActions.MODE_SET):
+        case (ModeActions.MODE_SET): {
             console.debug(`Mode set to: ${action.payload.mode}!`);
+            const nextMode = action.payload.mode;
+            let modePriorToPractice = state.modePriorToPractice;
+            if(nextMode !== TypingModes.PRACTICE) {
+                modePriorToPractice = nextMode;
+            } else if(nextMode === TypingModes.PRACTICE && state.mode !== TypingModes.PRACTICE) {
+                modePriorToPractice = state.mode;
+            }
             return {
                 ...state,
-                mode: action.payload.mode
+                mode: nextMode,
+                modePriorToPractice: modePriorToPractice
             }
+        }
         case (ModeActions.WORD_COUNT_SET):
             return {
                 ...state,

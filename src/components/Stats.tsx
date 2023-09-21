@@ -1,10 +1,8 @@
 import React from 'react';
-import { DispatchInput, ExerciseState, TypingActions } from '../reducers/exercise-reducer';
+import { ExerciseDispatchInput, ExerciseState, TypingActions } from '../reducers/exercise-reducer';
 import { ModeState } from '../reducers/mode-reducer';
 import { NextExercise, RedoExercise, PracticeMissedSlowWords, SaveToDifficultExercises } from '../inline-svgs';
 import { IconButton } from './IconButton';
-import WordsService from '../services/words/words-service';
-import { getWordDataList } from './TypingArea';
 import { TypingModes } from '../models/models';
 
 interface ExerciseType {
@@ -12,8 +10,7 @@ interface ExerciseType {
     mode: string;
     source: string;
 }
-const getExerciseType = (state: ModeState): ExerciseType => {
-    let size, mode, source;
+const getExerciseType = (state: ModeState, exerciseState: ExerciseState, quoteCitation: string): ExerciseType => {
     switch (state.mode) {
         case (TypingModes.FIXED):
             return {
@@ -31,7 +28,7 @@ const getExerciseType = (state: ModeState): ExerciseType => {
             return {
                 size: state.quotesLength,
                 mode: "quote",
-                source: state.quotesSource,
+                source: quoteCitation
             }
     }
 }
@@ -44,13 +41,14 @@ const getExerciseType = (state: ModeState): ExerciseType => {
  * 
  * needs to take in mode to display the correct exercise type
  */
-const Stats = ({ exerciseState, modeState, nextExercise, retryExercise, practiceMissedWords }:
+const Stats = ({ exerciseState, modeState, nextExercise, retryExercise, practiceMissedWords, quoteCitation }:
     {
         exerciseState: ExerciseState,
         modeState: ModeState,
         nextExercise: React.MouseEventHandler,
         retryExercise: React.MouseEventHandler,
-        practiceMissedWords: React.MouseEventHandler
+        practiceMissedWords: React.MouseEventHandler,
+        quoteCitation: string
     }
 ): React.ReactElement => {
 
@@ -58,13 +56,13 @@ const Stats = ({ exerciseState, modeState, nextExercise, retryExercise, practice
     const accuracyDisplay = Math.floor(exerciseState.accuracy);
 
     const getExerciseName = (): React.ReactElement => {
-        const exercise = getExerciseType(modeState);
-        if(modeState.mode === TypingModes.PRACTICE) {
+        const exercise = getExerciseType(modeState, exerciseState, quoteCitation);
+        if (modeState.mode === TypingModes.PRACTICE) {
             return (
                 <span>practicing missed / slow words</span>
             );
         }
-        return(
+        return (
             <>
                 <span>{exercise.size} {exercise.mode}</span>
                 <span> - </span>
@@ -84,7 +82,7 @@ const Stats = ({ exerciseState, modeState, nextExercise, retryExercise, practice
                     <header className="stats-header">{accuracyDisplay}% accuracy</header>
                 </div>
                 <div id="little-stats">
-                    { getExerciseName() }
+                    {getExerciseName()}
                 </div>
             </div>
             <div id="summary-buttons-container">
@@ -92,10 +90,6 @@ const Stats = ({ exerciseState, modeState, nextExercise, retryExercise, practice
                 <IconButton image={<RedoExercise />} onClick={retryExercise} />
                 <IconButton image={<PracticeMissedSlowWords />} onClick={practiceMissedWords} />
                 <IconButton image={<SaveToDifficultExercises />} />
-                {/* <div>next</div> */}
-                {/* <div>redo</div>
-                <div>practice</div>
-                <div>save</div> */}
             </div>
         </section>
     );
