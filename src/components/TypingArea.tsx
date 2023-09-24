@@ -1,8 +1,8 @@
-import React, { useEffect, useState, Suspense, ReactHTML, useReducer, useMemo, useRef } from 'react';
-import { ObjectValues, TypingMode, FixedWordExerciseLength, TypingModes } from '../models/models';
+import React, { useEffect, useRef } from 'react';
+import { TypingModes } from '../models/models';
 import WordComponent from './Word';
 import { ModeState } from '../reducers/mode-reducer';
-import { ExerciseDispatchInput, ExerciseState, TypingActions, WordData, handleKeyDown, typedWord } from '../reducers/exercise-reducer';
+import { ExerciseDispatchInput, ExerciseState, ExerciseStatus, TypingActions, WordData, typedWord } from '../reducers/exercise-reducer';
 
 const deleteInputTypes = ['deleteContentBackward', 'deleteWordBackward', 'deleteSoftLineBackward', 'deleteHardLineBackward'];
 
@@ -27,34 +27,52 @@ export const TypingArea = ({
             inputRef.current.focus();
         }
         document.addEventListener('keydown', focusInputElement);
-        document.addEventListener('keydown', handleKeyDown);
         return () => {
             document.removeEventListener('keydown', focusInputElement);
-            document.removeEventListener('keydown', handleKeyDown);
         };
     }, [])
+
+
+    console.log(`currentWord: ${state.currentWord}`);
+    console.log(`typedWord.length: `, state.wordData[state.currentWord]);
 
 
     /**
      * critical logic for making backspace to previous words work!
      */
     useEffect(() => {
-        console.debug("input.value: ", `"${inputRef.current.value}"`);
-        const handleBeforeInput = (event: InputEvent) => {
-            if (state.currentWord > 0 && state.currentWord < state.words.length && isDeleteInputType(event) && state.wordData[state.currentWord].typedCharArray.length == 0) {
+
+        /**
+         * check if exercise in progress
+         * if key === backspace and input element's value is empty, then dispatch PREVIOUS_WORD
+         * 
+         * MOVING PREVIOUS_WORD DISPATCH HERE FROM HANDLEBEFOREINPUT FIXED SAFARI FORCE RELOAD BUG!!!
+         * TODO: maybe combine CHARACTER_DELETED and PREVIOUS_WORD into one reducer action
+         */
+        const handleKeyDown = (event: KeyboardEvent): void => {
+            console.log('keydown');
+            if(
+                state.status === ExerciseStatus.IN_PROGRESS && 
+                state.currentWord > 0 && 
+                state.currentWord < state.words.length && 
+                isBackspace(event) && 
+                state.wordData[state.currentWord].typedCharArray.length == 0
+            ) {
+                console.log("PREVIOUS_WORD");
                 dispatch({
                     type: TypingActions.PREVIOUS_WORD
-                })
+                });
             }
         }
-        inputRef.current.addEventListener('beforeinput', handleBeforeInput);
+        document.addEventListener('keydown', handleKeyDown);
         return () => {
-            inputRef.current.removeEventListener('beforeinput', handleBeforeInput);
+            document.removeEventListener('keydown', handleKeyDown);
         }
     }, [state]);
 
 
     const isDeleteInputType = (event: InputEvent): boolean => {
+        console.log(event.inputType);
         return deleteInputTypes.includes(event.inputType);
     }
 
@@ -62,10 +80,7 @@ export const TypingArea = ({
         return isDeleteInputType(event.nativeEvent as InputEvent) || inputValue.length < state.wordData[state.currentWord].typedCharArray.length;
     }
 
-    // TODO: change this logic to handle going backwards to other words
     const handleDeletion = (inputValue: string) => {
-        console.debug('DELETE');
-        // TODO: handle going backwards to other words here
         if (typedWord(state).length === 0) {
             return;
         }
@@ -95,14 +110,14 @@ export const TypingArea = ({
         }
     }
 
-    // TODO: transition this to a KeyDown handler (maybe, may not need to)
     const handleInput = (event: React.ChangeEvent) => {
+        console.log(`handleInput: "${inputRef.current.value}"`);
         if (state.currentWord >= state.words.length || !state.canType) {
             return;
         }
         if (!state.typingStarted) {
             dispatch({
-                type: TypingActions.TYPING_STARTED, // TODO: only trigger typing started if the character typed is a letter/number/symbol
+                type: TypingActions.TYPING_STARTED, 
                 payload: {
                     modeState: modeState,
                     dispatch: dispatch
@@ -112,16 +127,19 @@ export const TypingArea = ({
         const inputValue = (event.target as HTMLInputElement).value;
 
         if (isDelete(event, inputValue)) {
-            handleDeletion(inputValue);
-            return; // should we return here?
+            handleDeletion(inputValue.trim()); // .trim() to fix safari bug not deleting space when going to previous word. see if any reason not to trim(). 
+            return; 
         }
 
-        dispatch({
-            type: TypingActions.CHARACTER_TYPED,
-            payload: {
-                inputValue: inputValue,
-            }
-        });
+        if(inputValue.length > 0) {
+            console.log("input triggered a state update");
+            dispatch({
+                type: TypingActions.CHARACTER_TYPED,
+                payload: {
+                    inputValue: inputValue,
+                }
+            });
+        }
 
         const characterTyped = inputValue[inputValue.length - 1];
         if (shouldMoveToNextWord(inputValue, characterTyped) || endAfterLastCharacter(state, inputValue)) {
@@ -146,18 +164,35 @@ export const TypingArea = ({
                         : null
                 }
             </article>
-            {/* <div className="input-row"> */}
             <input
                 id="invisible-input"
                 type="text"
-                value={state.wordData[state.currentWord]?.typedCharArray.join('') || ""} // may need to manage the value in a more fine-grained fasion | may conflict with handleBeforeInput behaviors
-                onChange={handleInput} // may need to reconsider how handleInput is called (may need to call on keypress instead of onChange on the input element)
+                value={getInvisibleInputElementValue(state)} 
+                onChange={handleInput} 
+                // onInput={handleInput} 
                 ref={inputRef}
+                autoComplete='off'
+                autoCapitalize='off'
+                autoCorrect='off'
+                data-gramm='false'
+                data-gramm_editor='false'
+                data-enable-grammarly='false'
+                spellCheck='false'
             >
             </input>
-            {/* </div> */}
         </div>
     );
+}
+
+const getInvisibleInputElementValue = (state: ExerciseState): string => {
+    let returnValue;
+    if(state.wordData[state.currentWord]?.typedCharArray.length > 0) {
+        returnValue = state.wordData[state.currentWord]?.typedCharArray.join('') || "";
+    } else  {
+        returnValue = " ";
+    }
+    console.log(`getInvisibleInputElementValue: "${returnValue}"`);
+    return returnValue;
 }
 
 const endAfterLastCharacter = (state: ExerciseState, inputValue: string): boolean => {
@@ -172,7 +207,6 @@ const checkEndOfExercise = (exerciseState: ExerciseState, modeState: ModeState):
     }
 }
 
-// TODO: add force correctness mode, but that would just affect the overall correctness, not whether you can move to the next word or not
 const shouldMoveToNextWord = (typedWord: string, keyPressed: string): boolean => {
     return typedWord && keyPressed === ' ';
 }
@@ -195,4 +229,9 @@ export const getWordDataList = (selectedWords: string[]): WordData[] => {
     });
     data[0] = { ...data[0], cssClass: "highlighted" };
     return data;
+}
+
+const isBackspace = (event: KeyboardEvent): boolean => {
+    console.log(event);
+    return event.key === 'Backspace' || event.key === 'Delete';
 }

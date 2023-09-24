@@ -128,10 +128,10 @@ export const exerciseReducer = (state: ExerciseState, action: ExerciseDispatchIn
             const newWordData = [...state.wordData];
             const numCharsDeleted = getDeletedCharacters(action.payload.inputValue, state.wordData[state.currentWord].typedCharArray);
             const deletedChars = typedWord(state).slice(-numCharsDeleted);
-            console.debug('deleted chars: ', deletedChars);
+            console.debug('deleted chars: ', `"${deletedChars}"`);
             const length = state.wordData[state.currentWord].typedCharArray.length;
             newWordData[state.currentWord].typedCharArray = state.wordData[state.currentWord].typedCharArray.slice(0, length - numCharsDeleted);
-            console.debug('new char array: ', newWordData[state.currentWord].typedCharArray);
+            // console.debug('new char array: ', newWordData[state.currentWord].typedCharArray);
             return {
                 ...state,
                 ...action.payload,
@@ -142,9 +142,9 @@ export const exerciseReducer = (state: ExerciseState, action: ExerciseDispatchIn
         case (TypingActions.WORD_COMPLETE):
             const correct = action.payload.inputValue === state.words[state.currentWord];
             if (correct) {
-                console.log('word was typed correctly!');
+                // console.log('word was typed correctly!');
             } else {
-                console.log(`word was typed incorrectly! word should have been: ${state.words[state.currentWord]}. word typed: ${typedWord(state)}`);
+                // console.log(`word was typed incorrectly! word should have been: ${state.words[state.currentWord]}. word typed: ${typedWord(state)}`);
             }
             const newWordData = [...state.wordData];
             const newClassName = correct ? "correct" : "incorrect";
@@ -178,9 +178,11 @@ export const exerciseReducer = (state: ExerciseState, action: ExerciseDispatchIn
         case (TypingActions.PREVIOUS_WORD): {
             if (state.currentWord >= 1) {
                 const newWordData = [...state.wordData];
+                console.log(`reducer - previous word is "${newWordData[state.currentWord - 1].typedCharArray}"`);
                 newWordData[state.currentWord - 1].typedCharArray.push(' ');
                 return {
                     ...state,
+                    wordData: newWordData,
                     currentWord: state.currentWord - 1
                 }
             }
@@ -225,9 +227,6 @@ export const getMistypedWords = (wordData: WordData[]): WordData[] => {
     return mistyped;
 }
 
-export const handleKeyDown = (event: KeyboardEvent): void => {
-    // TODO: remove if deemed unnecessary 
-}
 
 const getFinalWordData = (state: ExerciseState, mode: TypingMode): WordData[] => {
     if (mode === TypingModes.FIXED || mode === TypingModes.QUOTES) {
@@ -260,6 +259,7 @@ export const typedWord = (state: ExerciseState): string => {
 }
 
 const getDeletedCharacters = (inputValue: string, typedCharArray: string[]): number => {
+    console.log(`typedWordvalue: "${typedCharArray.join('')}", inputValue: "${inputValue}"`);
     return inputValue.length < typedCharArray.length ? typedCharArray.length - inputValue.length : 0;
 }
 
