@@ -3,19 +3,24 @@ import '../pages/landing/landing.scss';
 import { ModeOptions, OptionCategories, OptionCategory, OptionCategoryDisplay, OptionCategoryValue, OptionItemConfiguration, OptionItemValue, OptionValuesByCategory, StatePropertiesByCategory, TypingMode, TypingModes } from '../models/models';
 import { ModeActions, ModeState, ModeDispatchInput, ModeActionsByCategory } from '../reducers/mode-reducer';
 import ModeSelectInput from './ModeSelectInput';
+import { ExerciseDispatchInput, ExerciseState, TypingActions } from '../reducers/exercise-reducer';
 
 
 interface ModeRowProps {
     modeName: TypingMode;
     currentMode: TypingMode;
     dispatch: React.Dispatch<React.ReducerAction<React.Reducer<ModeState, ModeDispatchInput>>>
+    dispatchNewWords: () => void;
 }
-const ModeRow = ({ modeName, currentMode, dispatch }: ModeRowProps): React.ReactElement => {
+const ModeRow = ({ modeName, currentMode, dispatch, dispatchNewWords }: ModeRowProps): React.ReactElement => {
     const cssClass = modeName === currentMode ? 'mode-item selected' : 'mode-item';
     return (
         <header
             className={cssClass}
-            onClick={() => dispatch({ type: ModeActions.MODE_SET, payload: { mode: modeName } })}
+            onClick={() => {
+                dispatch({ type: ModeActions.MODE_SET, payload: { mode: modeName } });
+                // dispatchNewWords();
+            }}
         >
             <span>{modeName}</span>
         </header>
@@ -24,25 +29,29 @@ const ModeRow = ({ modeName, currentMode, dispatch }: ModeRowProps): React.React
 
 
 const ModeOption = (
-    { item, selectedItem, category, state, dispatch }:
+    { item, selectedItem, category, state, dispatch, dispatchNewWords }:
         {
             item: OptionItemConfiguration;
             selectedItem: OptionItemValue; // may need to change this to OptionItemConfiguration and change ModeState to track configurations instead of just values..
             category: OptionCategory;
             state: ModeState;
             dispatch: React.Dispatch<React.ReducerAction<React.Reducer<ModeState, ModeDispatchInput>>>
+            dispatchNewWords: () => void;
         }
 ): React.ReactElement => {
     const cssClass = item.value === selectedItem ? 'mode-item selected' : 'mode-item';
     return (
         <div
             className={cssClass}
-            onClick={() => dispatch({
+            onClick={() => {
+                dispatch({
                     type: ModeActionsByCategory[category.value],
                     payload: {
-                        [StatePropertiesByCategory[category.value]]: item.value
+                        [StatePropertiesByCategory[category.value]]: item.value     // need to map current category to a category dispatch. pass selected item via payload
                     }
-            })} // need to map current category to a category dispatch. pass selected item via payload
+                });
+                // dispatchNewWords();
+            }} 
         >
             {item.display}
         </div>
@@ -54,7 +63,7 @@ const getModeOptionStateByCategory = (state: ModeState, category: OptionCategory
     return state[StatePropertiesByCategory[category]] as Exclude<OptionItemValue, TypingMode>;
 }
 
-export const ModeRadioInput = ({ category, optionItems, state, dispatch }: ModeOptionRowProps): React.ReactElement => {
+export const ModeRadioInput = ({ category, optionItems, state, dispatch, dispatchNewWords }: ModeOptionRowProps): React.ReactElement => {
     return (
         <div className="mode-option-value-list">
             {
@@ -66,6 +75,7 @@ export const ModeRadioInput = ({ category, optionItems, state, dispatch }: ModeO
                             category={category}
                             state={state}
                             dispatch={dispatch}
+                            dispatchNewWords={dispatchNewWords}
                             key={index}
                         />
                     )
@@ -84,8 +94,6 @@ export const OptionCategoryToInputComponent: Record<OptionCategoryValue, ModeInp
     [OptionCategories.NUMBERS.value]: ModeRadioInput,
     [OptionCategories.WORDS_SOURCE.value]: ModeSelectInput,
     [OptionCategories.QUOTES_SOURCE.value]: ModeSelectInput,
-    // [OptionCategories.WORDS_SOURCE.value]: ModeRadioInput,
-    // [OptionCategories.QUOTES_SOURCE.value]: ModeRadioInput,
     [OptionCategories.PRACTICE_SOURCE.value]: ModeRadioInput,
     [OptionCategories.FORCE_CORRECTIONS.value]: ModeRadioInput,
     [OptionCategories.PRACTICE_FORMAT.value]: ModeRadioInput
@@ -98,12 +106,13 @@ export interface ModeOptionRowProps {
     optionItems: OptionItemConfiguration[];
     state: ModeState;
     dispatch: React.Dispatch<React.ReducerAction<React.Reducer<ModeState, ModeDispatchInput>>>;
+    dispatchNewWords: () => void;
 }
 
 /**
  * Each option category is mapped to a specific input component which is chosen at runtime
  */
-const ModeOptionRow = ({ category, optionItems, state, dispatch }: ModeOptionRowProps): React.ReactElement => {
+const ModeOptionRow = ({ category, optionItems, state, dispatch, dispatchNewWords }: ModeOptionRowProps): React.ReactElement => {
     const DynamicInputComponent = OptionCategoryToInputComponent[category.value];
     return (
         <div className="mode-option-row">
@@ -113,6 +122,7 @@ const ModeOptionRow = ({ category, optionItems, state, dispatch }: ModeOptionRow
                 optionItems={optionItems}
                 state={state}
                 dispatch={dispatch}
+                dispatchNewWords={dispatchNewWords}
             />
         </div>
     );
@@ -124,10 +134,12 @@ const ModeOptionRow = ({ category, optionItems, state, dispatch }: ModeOptionRow
  * TODO: track state for selected options and transmit to TypingArea
  */
 interface ModeMenuProps {
-    state: ModeState,
-    dispatch: React.Dispatch<React.ReducerAction<React.Reducer<ModeState, ModeDispatchInput>>>
+    state: ModeState;
+    dispatch: React.Dispatch<React.ReducerAction<React.Reducer<ModeState, ModeDispatchInput>>>;
+    dispatchNewWords: () => void
 }
-export const ModeMenu = ({ state, dispatch }: ModeMenuProps): React.ReactElement => {
+export const ModeMenu = ({ state, dispatch, dispatchNewWords }: ModeMenuProps): React.ReactElement => {
+    // TODO: could also just create this function inside Landing and pass it in as props. May run into issues of state being out of sync?
     return (
         <div className="mode-menu-container">
             <section id="mode-selector">
@@ -140,6 +152,7 @@ export const ModeMenu = ({ state, dispatch }: ModeMenuProps): React.ReactElement
                                     modeName={modeName}
                                     currentMode={state.mode}
                                     dispatch={dispatch}
+                                    dispatchNewWords={dispatchNewWords}
                                     key={index}
                                 />
                             );
@@ -157,6 +170,7 @@ export const ModeMenu = ({ state, dispatch }: ModeMenuProps): React.ReactElement
                                 optionItems={OptionValuesByCategory[category.value]}
                                 state={state}
                                 dispatch={dispatch}
+                                dispatchNewWords={dispatchNewWords}
                                 key={index}
                             />
                         );

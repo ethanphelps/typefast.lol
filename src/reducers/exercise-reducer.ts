@@ -1,22 +1,22 @@
 // should all this state be in one interface? would this trigger unnecessary re-renders?
 
 import { ObjectValues, TypingMode, TypingModes } from "../models/models";
-import WordsService from "../services/words/words-service";
 import { ModeState } from "./mode-reducer";
 
 // TODO: remove 'word' from state and rely on wordCharArray instead
 export interface WordData {
     id: number;
-    word: string; 
+    word: string;
     wordCharArray: string[];
     typedCharArray: string[]; // char array version of word to use for char highlighting
-    incorrectAttempts: []; 
+    incorrectAttempts: [];
     cssClass: string;
     mistyped: boolean;
 }
 
 export const TypingActions = {
     RESET: 'reset',
+    QUOTE_SET: 'quote-set',
     TYPING_STARTED: 'typing-started',
     WORD_COMPLETE: 'word-complete',
     PREVIOUS_WORD: 'previous-word',
@@ -31,9 +31,9 @@ interface ActionPayload {
     inputValue: string;
     mode: TypingMode;
     modeState: ModeState;
-    dispatch: React.Dispatch<React.ReducerAction<React.Reducer<ExerciseState, DispatchInput>>>;
+    dispatch: React.Dispatch<React.ReducerAction<React.Reducer<ExerciseState, ExerciseDispatchInput>>>;
 }
-export interface DispatchInput {
+export interface ExerciseDispatchInput {
     type: TypingAction;
     payload?: Partial<ExerciseState> & Partial<ActionPayload>;
 }
@@ -60,15 +60,16 @@ export interface ExerciseState {
     wpm: number;
     accuracy: number;
     timeoutId?: NodeJS.Timeout;
+    quoteCitation: string;
 }
 
 /**
  * new words should be passed into the reducer via payload sice typedWords and wordComponents are derived from words
  * TODO: reduce reliance on payload and set states inside reducer when possible
  */
-export const exerciseReducer = (state: ExerciseState, action: DispatchInput): ExerciseState => {
-    switch(action.type) {
-        case(TypingActions.RESET):
+export const exerciseReducer = (state: ExerciseState, action: ExerciseDispatchInput): ExerciseState => {
+    switch (action.type) {
+        case (TypingActions.RESET):
             console.debug(`Clearing timeout ID ${state.timeoutId}`);
             clearTimeout(state.timeoutId);
             return {
@@ -86,27 +87,33 @@ export const exerciseReducer = (state: ExerciseState, action: DispatchInput): Ex
                 canType: true
             }
 
-        case(TypingActions.TYPING_STARTED):
+        case (TypingActions.QUOTE_SET):
+            return {
+                ...state,
+                quoteCitation: action.payload.quoteCitation
+            }
+
+        case (TypingActions.TYPING_STARTED):
             console.debug('Initial states:', state);
             return {
                 ...state,
                 status: ExerciseStatus.IN_PROGRESS,
                 typingStarted: true,
                 startTime: Date.now(),
-                timeoutId: setTimedModeTimer(action.payload.modeState, action.payload.dispatch)
+                timeoutId: setTimedModeTimer(action.payload.modeState, action.payload.dispatch),
             }
 
         // TODO: handle multiple characters being inserted at once into the input element (maybe? copy/paste shouldn't be expected functionality)
-        case(TypingActions.CHARACTER_TYPED): {
+        case (TypingActions.CHARACTER_TYPED): {
             const inputValue = action.payload.inputValue;
             const characterTyped = inputValue[inputValue.length - 1]; // this may need to change
             let newWordData;
             let targetWord = state.wordData[state.currentWord].wordCharArray;
             let typedWord = state.wordData[state.currentWord].typedCharArray;
-            if(characterTyped !== " ") {
+            if (characterTyped !== " ") {
                 newWordData = [...state.wordData];
                 newWordData[state.currentWord].typedCharArray.push(characterTyped);
-                if(!wordIncrementallyCorrect(targetWord, typedWord)) {
+                if (!wordIncrementallyCorrect(targetWord, typedWord)) {
                     newWordData[state.currentWord].mistyped = true;
                 }
             }
@@ -117,7 +124,7 @@ export const exerciseReducer = (state: ExerciseState, action: DispatchInput): Ex
             }
         }
 
-        case(TypingActions.CHARACTER_DELETED): {
+        case (TypingActions.CHARACTER_DELETED): {
             const newWordData = [...state.wordData];
             const numCharsDeleted = getDeletedCharacters(action.payload.inputValue, state.wordData[state.currentWord].typedCharArray);
             const deletedChars = typedWord(state).slice(-numCharsDeleted);
@@ -132,7 +139,7 @@ export const exerciseReducer = (state: ExerciseState, action: DispatchInput): Ex
             }
         }
 
-        case(TypingActions.WORD_COMPLETE):
+        case (TypingActions.WORD_COMPLETE):
             const correct = action.payload.inputValue === state.words[state.currentWord];
             if (correct) {
                 console.log('word was typed correctly!');
@@ -142,7 +149,7 @@ export const exerciseReducer = (state: ExerciseState, action: DispatchInput): Ex
             const newWordData = [...state.wordData];
             const newClassName = correct ? "correct" : "incorrect";
             let updatedTypedCharArray = state.wordData[state.currentWord].typedCharArray;
-            if(typedWord(state).length < state.wordData[state.currentWord].word.length) {
+            if (typedWord(state).length < state.wordData[state.currentWord].word.length) {
                 let spaces = state.wordData[state.currentWord].wordCharArray
                     .slice(typedWord(state).length - state.wordData[state.currentWord].word.length)
                     .map((char: string) => ' ');
@@ -159,7 +166,7 @@ export const exerciseReducer = (state: ExerciseState, action: DispatchInput): Ex
                     ...newWordData[state.currentWord + 1],
                     cssClass: "highlighted"
                 }
-            } 
+            }
             return {
                 ...state,
                 ...action.payload,
@@ -167,9 +174,9 @@ export const exerciseReducer = (state: ExerciseState, action: DispatchInput): Ex
                 // currentWord: state.currentWord >= state.words.length - 1 ? state.currentWord : state.currentWord + 1,
                 currentWord: state.currentWord + 1,
             }
-        
-        case(TypingActions.PREVIOUS_WORD): {
-            if(state.currentWord >= 1) {
+
+        case (TypingActions.PREVIOUS_WORD): {
+            if (state.currentWord >= 1) {
                 const newWordData = [...state.wordData];
                 newWordData[state.currentWord - 1].typedCharArray.push(' ');
                 return {
@@ -179,10 +186,10 @@ export const exerciseReducer = (state: ExerciseState, action: DispatchInput): Ex
             }
         }
 
-        case(TypingActions.EXERCISE_COMPLETE): {
+        case (TypingActions.EXERCISE_COMPLETE): {
             console.debug(`final currentWord value: ${state.currentWord}`);
             console.debug('final states: ', state);
-            const finalWordData: WordData[] = getFinalWordData(state, action.payload.mode || TypingModes.FIXED); 
+            const finalWordData: WordData[] = getFinalWordData(state, action.payload.mode || TypingModes.FIXED);
             console.debug('final Word data: ', finalWordData);
             const totalCharacters = getTotalCharacters(finalWordData.map((wordData) => wordData.word));
             const correctCharacters = getCorrectCharacters(finalWordData);
@@ -211,19 +218,19 @@ export const exerciseReducer = (state: ExerciseState, action: DispatchInput): Ex
 export const getMistypedWords = (wordData: WordData[]): WordData[] => {
     const mistyped: WordData[] = [];
     wordData.forEach((word: WordData) => {
-        if(word.mistyped) {
+        if (word.mistyped) {
             mistyped.push(word);
         }
     })
     return mistyped;
 }
 
-export const handleKeyDown  = (event: KeyboardEvent): void => {
+export const handleKeyDown = (event: KeyboardEvent): void => {
     // TODO: remove if deemed unnecessary 
 }
 
 const getFinalWordData = (state: ExerciseState, mode: TypingMode): WordData[] => {
-    if(mode === TypingModes.FIXED || mode === TypingModes.QUOTES) {
+    if (mode === TypingModes.FIXED || mode === TypingModes.QUOTES) {
         return [...state.wordData];
     } else if (mode === TypingModes.TIMED) {
         return state.wordData.slice(0, state.currentWord); // TODO: see how to handle timer ending when last letter of last word typed correctly but no space pressed (should count as correct)
@@ -233,12 +240,12 @@ const getFinalWordData = (state: ExerciseState, mode: TypingMode): WordData[] =>
 
 const setTimedModeTimer = (
     modeState: ModeState,
-    dispatch: React.Dispatch<React.ReducerAction<React.Reducer<ExerciseState, DispatchInput>>>
+    dispatch: React.Dispatch<React.ReducerAction<React.Reducer<ExerciseState, ExerciseDispatchInput>>>
 ): NodeJS.Timeout | null => {
     if (modeState.mode === TypingModes.TIMED) {
         console.debug(`Mode is ${modeState.mode} and timer is being set for ${modeState.duration} seconds!`);
         return setTimeout(() => {
-            dispatch({ 
+            dispatch({
                 type: TypingActions.EXERCISE_COMPLETE,
                 payload: {
                     mode: TypingModes.TIMED
@@ -291,7 +298,7 @@ const getCorrectCharacters = (wordData: WordData[]): number => {
  * TODO: use wordCharArray and typedCharArray instead of word and typed word
  */
 const wordIncrementallyCorrect = (targetWord: string[], typedWord: string[]) => {
-    if(typedWord.length > targetWord.length) {
+    if (typedWord.length > targetWord.length) {
         return false;
     }
     for (let i = 0; i < typedWord.length; i++) {

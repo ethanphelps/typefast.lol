@@ -1,10 +1,8 @@
 import React, { useEffect, useState, Suspense, ReactHTML, useReducer, useMemo, useRef } from 'react';
 import { ObjectValues, TypingMode, FixedWordExerciseLength, TypingModes } from '../models/models';
-import { WordsSource } from '../services/words/words.interface';
-import WordsService from '../services/words/words-service';
 import WordComponent from './Word';
 import { ModeState } from '../reducers/mode-reducer';
-import { DispatchInput, ExerciseState, TypingActions, WordData, handleKeyDown, typedWord } from '../reducers/exercise-reducer';
+import { ExerciseDispatchInput, ExerciseState, TypingActions, WordData, handleKeyDown, typedWord } from '../reducers/exercise-reducer';
 
 const deleteInputTypes = ['deleteContentBackward', 'deleteWordBackward', 'deleteSoftLineBackward', 'deleteHardLineBackward'];
 
@@ -12,7 +10,7 @@ const deleteInputTypes = ['deleteContentBackward', 'deleteWordBackward', 'delete
 
 interface TypingAreaProps {
     state: ExerciseState;
-    dispatch: React.Dispatch<React.ReducerAction<React.Reducer<ExerciseState, DispatchInput>>>;
+    dispatch: React.Dispatch<React.ReducerAction<React.Reducer<ExerciseState, ExerciseDispatchInput>>>;
     modeState: ModeState;
 }
 // should mode state be passed together as one prop value or as individual prop values?
@@ -128,7 +126,7 @@ export const TypingArea = ({
         const characterTyped = inputValue[inputValue.length - 1];
         if (shouldMoveToNextWord(inputValue, characterTyped) || endAfterLastCharacter(state, inputValue)) {
             handleWordComplete(inputValue.trim());
-        } 
+        }
     }
 
     return (
@@ -149,14 +147,14 @@ export const TypingArea = ({
                 }
             </article>
             {/* <div className="input-row"> */}
-                <input
-                    id="invisible-input"
-                    type="text"
-                    value={state.wordData[state.currentWord]?.typedCharArray.join('') || ""} // may need to manage the value in a more fine-grained fasion | may conflict with handleBeforeInput behaviors
-                    onChange={handleInput} // may need to reconsider how handleInput is called (may need to call on keypress instead of onChange on the input element)
-                    ref={inputRef}
-                >
-                </input>
+            <input
+                id="invisible-input"
+                type="text"
+                value={state.wordData[state.currentWord]?.typedCharArray.join('') || ""} // may need to manage the value in a more fine-grained fasion | may conflict with handleBeforeInput behaviors
+                onChange={handleInput} // may need to reconsider how handleInput is called (may need to call on keypress instead of onChange on the input element)
+                ref={inputRef}
+            >
+            </input>
             {/* </div> */}
         </div>
     );
@@ -171,7 +169,7 @@ const checkEndOfExercise = (exerciseState: ExerciseState, modeState: ModeState):
         return exerciseState.currentWord + 1 >= exerciseState.words.length;
     } else if (modeState.mode === TypingModes.TIMED) {
         return false;
-    } 
+    }
 }
 
 // TODO: add force correctness mode, but that would just affect the overall correctness, not whether you can move to the next word or not
@@ -181,7 +179,7 @@ const shouldMoveToNextWord = (typedWord: string, keyPressed: string): boolean =>
 
 
 export const getWordDataList = (selectedWords: string[]): WordData[] => {
-    if(!selectedWords) {
+    if (!selectedWords) {
         return [];
     }
     const data: WordData[] = selectedWords.map((word: string, index: number) => {
