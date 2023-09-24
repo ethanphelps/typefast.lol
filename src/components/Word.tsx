@@ -16,7 +16,7 @@ const WordComponent = ({ word, typedWord, wordIndex, currentWord }: { word: stri
     if(currentWord === wordIndex && typedWord.length >= word.length) {
         spaceClass = "highlighted";
     }
-    
+
     return (
         <>
             {

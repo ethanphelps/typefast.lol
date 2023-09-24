@@ -15,13 +15,12 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-  margin: 40px 20px 10px 20px; // top right bottom left
+  margin: 40px 20px 10px 20px; 
 }
 
 .body-container {
   display: flex;
   justify-content: center;
-  // align-items: center;
   flex-grow: 1;
   position: relative;
 }
@@ -47,10 +46,6 @@ body {
   transition: top 0.8s ease-in-out, left 0.8s ease-in-out;
 }
 
-// #typing-area-section {
-//   position: relative;
-// }
-
 #mode-menu-wrapper {
   position: relative;
 }
@@ -69,7 +64,6 @@ body {
   bottom: -10px;
   left: 0;
   right: 0;
-  // top: 0;
 }
 
 #mode-menu-divider {
@@ -150,29 +144,12 @@ body {
   // max-width: 100%;
 }
 
-.typing-display {
-  // text-align: center;
-}
-
 .input-row {
   display: flex;
   margin-top: 20px;
   column-gap: 10px;
 }
 
-.typing-input {
-  line-height: inherit;
-  font-family: inherit;
-  background-color: colors.$accent-color;
-  color: inherit;
-  border-radius: 0.3rem;
-  border-color: colors.$accent-color;
-  border-style: solid;
-  padding: 5px 10px 5px 10px;
-  font-size: 1.2rem;
-  transition: all 0.2s;
-  flex-grow: 1;
-}
 
 .retry-button {
   flex-grow: 0;
@@ -189,60 +166,26 @@ body {
   cursor: pointer;
 }
 
-.typing-input:focus, .typing-input:hover {
-    box-sizing: border-box;
-    border-style: solid;
-    border-color: colors.$font-color;
-    outline: none;
-    transition: all 0.2s;
-}
-
 #logo {
   font-weight: 800;
   font-size: 32px;
 }
 
-@keyframes blink {
-  0% {
-    opacity: 0;
-  }
-  49% {
-    opacity: 0;
-  }
-  50% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 1;
-  }
-}
 
 @keyframes flash { 
   0% { 
-    // background-color: colors.$accent-color;
-    // background-color: rgb(42, 42, 53, 1);
     background-color: rgb(228, 228, 228, 0.4);
-    // opacity: 1;
   }
   50% {
-    // background-color: colors.$accent-color;
-    // background-color: rgb(42, 42, 53, 0);
     background-color: rgb(228, 228, 228, 0);
-    // opacity: 0;
   }
   to {
-    // background-color: colors.$github-dark;
-    // background-color: rgb(42, 42, 53, 1);
     background-color: rgb(228, 228, 228, 0.4);
-    // opacity: 1;
   }
 }
 
 .highlighted {
-  // color: colors.$accent-color;
   color: colors.$font-color;
-  // background: colors.$accent-color;
-  // background: colors.$font-color;
   animation: flash 1s ease-in-out infinite;
 }
 
@@ -273,6 +216,14 @@ body {
 #invisible-input {
   z-index: -1;
   position: absolute;
+  pointer-events: none;
+  outline: none;
+  border: none;
+  cursor: default;
+  resize: none;
+  opacity: 0;
+  padding: 0;
+  margin: 0;
 }
 
 .icon-button {
@@ -295,21 +246,13 @@ body {
 }
 
 .select-display {
-  // padding: 10px;
   border-radius: 0.4rem;
-  // border-top-left-radius: 0.4rem;
-  // border-top-right-radius: 0.4rem;
   background-color: colors.$accent-color;
   padding-left: 10px;
-  // border: 2px solid colors.$github-dark;
-  // border-color: colors.$github-dark;
 }
 .select-display.open {
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
-  // border-top: 2px solid colors.$github-dark;
-  // border-right: 2px solid colors.$github-dark;
-  // border-left: 2px solid colors.$github-dark;
 }
 
 .select-options {
@@ -320,10 +263,8 @@ body {
   top: 100%;
   left: 0;
   width: 100%;
-  // border: 1px solid transparent;
   border-bottom-left-radius: 0.4rem;
   border-bottom-right-radius: 0.4rem;
-  // outline: 1px solid transparent;
 }
 
 .select-options.closed {
