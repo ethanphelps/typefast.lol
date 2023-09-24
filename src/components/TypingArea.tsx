@@ -23,13 +23,13 @@ export const TypingArea = ({
 
     useEffect(() => {
         inputRef.current.focus();
-        const focusInputElement = (event: KeyboardEvent) => {
-            inputRef.current.focus();
-        }
-        document.addEventListener('keydown', focusInputElement);
-        return () => {
-            document.removeEventListener('keydown', focusInputElement);
-        };
+        // const focusInputElement = (event: KeyboardEvent) => {
+        //     inputRef.current.focus();
+        // }
+        // document.addEventListener('keydown', focusInputElement);
+        // return () => {
+        //     document.removeEventListener('keydown', focusInputElement);
+        // };
     }, [])
 
 
@@ -51,6 +51,10 @@ export const TypingArea = ({
          */
         const handleKeyDown = (event: KeyboardEvent): void => {
             console.log('keydown');
+            if(state.status === ExerciseStatus.IN_PROGRESS || state.status === ExerciseStatus.READY) {
+                inputRef.current.focus();
+            }
+
             if(
                 state.status === ExerciseStatus.IN_PROGRESS && 
                 state.currentWord > 0 && 
@@ -111,10 +115,13 @@ export const TypingArea = ({
     }
 
     const handleInput = (event: React.ChangeEvent) => {
-        console.log(`handleInput: "${inputRef.current.value}"`);
-        if (state.currentWord >= state.words.length || !state.canType) {
+        if (state.currentWord >= state.words.length || !state.canType || earlySpace(state, event)) {
             return;
         }
+
+        console.log(`handleInput: "${inputRef.current.value}"`);
+        const inputValue = (event.target as HTMLInputElement).value;
+
         if (!state.typingStarted) {
             dispatch({
                 type: TypingActions.TYPING_STARTED, 
@@ -124,7 +131,6 @@ export const TypingArea = ({
                 }
             });
         }
-        const inputValue = (event.target as HTMLInputElement).value;
 
         if (isDelete(event, inputValue)) {
             handleDeletion(inputValue.trim()); // .trim() to fix safari bug not deleting space when going to previous word. see if any reason not to trim(). 
@@ -184,6 +190,10 @@ export const TypingArea = ({
     );
 }
 
+const earlySpace = (state: ExerciseState, event: React.ChangeEvent): boolean => {
+    return (event.nativeEvent as InputEvent).data === " " && state.wordData[state.currentWord].typedCharArray.length === 0;
+}
+
 const getInvisibleInputElementValue = (state: ExerciseState): string => {
     let returnValue;
     if(state.wordData[state.currentWord]?.typedCharArray.length > 0) {
@@ -233,5 +243,5 @@ export const getWordDataList = (selectedWords: string[]): WordData[] => {
 
 const isBackspace = (event: KeyboardEvent): boolean => {
     console.log(event);
-    return event.key === 'Backspace' || event.key === 'Delete';
+    return event.key === 'Backspace' || event.key === 'delete';
 }
