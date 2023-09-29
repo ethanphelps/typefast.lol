@@ -6,7 +6,7 @@ import { MODE_STATE, ModeActions, ModeState, initialModeState, modeOptionsReduce
 import { ExerciseState, ExerciseStatus, ExerciseStatusValue, MissedWords, TypingActions, exerciseReducer, getMistypedWords } from '../../reducers/exercise-reducer';
 import Stats from '../../components/Stats';
 import SlowMissedWords from '../../components/SlowMissedWords';
-import { TypingModes } from '../../models/models';
+import { OptionCategories, TypingModes } from '../../models/models';
 import * as WordsService from '../../services/words/words-service';
 import * as Logger from '../../utils/logger';
 
@@ -22,12 +22,6 @@ const Header = ({ }): React.ReactElement => {
 };
 
 
-// todo: see if words list should be passed into TypingArea component?
-
-/**
- * should randomizedWords and wordsJson state live in TypingArea component since we only want that to rerender when
- * the words are reset?
- */
 export const Landing = (): React.ReactElement => {
     const [quoteCitation, setQuoteCitation] = useState<string>("");
 
@@ -37,21 +31,15 @@ export const Landing = (): React.ReactElement => {
         (initialModeState: ModeState): ModeState => {
             const sessionState = sessionStorage.getItem(MODE_STATE);
             const parsedState: Partial<ModeState> = sessionState ? JSON.parse(sessionState) : {};
+            if(OptionCategories.MODE.value in parsedState && parsedState.mode === TypingModes.PRACTICE) {
+                parsedState.mode = parsedState.modePriorToPractice || TypingModes.FIXED;
+            }
             return {
                 ...initialModeState,
                 ...parsedState
             }
         }
     );
-
-    // this may cause issues with practice mode not being able to save words from previous exercise
-    // why do we need to re-instantiate the words service when these state values change? can't we just instantiate it once
-    // and then just reset the state to get values from different sources?
-    // we're relying on re-renders to get new words by re-instantiating the service. should be able to get new words another way?
-    // const wordsService = useMemo(() => {
-    //     return new WordsService();
-    // }, []);
-
 
 
     /**

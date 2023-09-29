@@ -1,14 +1,14 @@
-const LOGGING_ENABLED = false;
-const DEBUG_LOGGING_ENABLED = false;
+const LOGGING_ENABLED = true;
+const DEBUG_LOGGING_ENABLED = true;
 
 export const log = (message: any, ...args: any[]): void => {
     if(LOGGING_ENABLED) {
-        console.log(message, args);
+        console.log(message, ...args);
     }
 }
 
 export const debug = (message: any, ...args: any[]): void => {
     if(DEBUG_LOGGING_ENABLED) {
-        console.debug(message, args);
+        console.debug(message, ...args);
     }
 }

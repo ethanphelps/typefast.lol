@@ -1,5 +1,5 @@
 import React from 'react';
-import { ExerciseState, getMistypedWords } from '../reducers/exercise-reducer';
+import { ExerciseState, MissedWords, getMistypedWords } from '../reducers/exercise-reducer';
 import { IconButton } from './IconButton';
 import { AddItem } from '../inline-svgs';
 import * as Logger from "../utils/logger";
@@ -21,6 +21,14 @@ const WordListItem = ({ word, onClick, count }: { word: string, onClick: React.M
     );
 }
 
+const sortMistypedWords = (words: MissedWords): [string, number][] => {
+    let wordsList = Object.entries(words);
+    const comparator = (a: [string, number], b: [string, number]): number => {
+        return b[1] - a[1]
+    }
+    return wordsList.sort(comparator);
+}
+
 /**
  * This component should be a grid with two halves: one that shows mistyped words and one
  * that shows slow words. This section should be able to expand downwards indefinitely 
@@ -31,7 +39,7 @@ const WordListItem = ({ word, onClick, count }: { word: string, onClick: React.M
  * create a component for each row
  */
 const SlowMissedWords = ({ exerciseState }: { exerciseState: ExerciseState }): React.ReactElement => {
-    const mistypedWords = getMistypedWords(exerciseState.wordData);
+    const mistypedWords = sortMistypedWords(getMistypedWords(exerciseState.wordData));
     const wordListItemClicked = (event: React.MouseEvent) => {
         Logger.log("word list item clicked!!!");
     }
@@ -47,7 +55,7 @@ const SlowMissedWords = ({ exerciseState }: { exerciseState: ExerciseState }): R
                 </div>
                 <ul>
                     {
-                        Object.entries(mistypedWords).map((word, index: number) => {
+                        mistypedWords.map((word, index: number) => {
                             return <WordListItem word={word[0]} onClick={wordListItemClicked} count={word[1]} key={index}/>
                         })
                     }

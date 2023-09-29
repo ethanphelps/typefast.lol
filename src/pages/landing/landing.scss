@@ -403,9 +403,19 @@ body {
   transition: background-color 0.3s ease-in-out;
   padding-left: 5px;
   border-radius: 0.4rem;
+
+  div, svg {
+    transition: color 0.3s ease-in-out;
+    transition: stroke 0.3s ease-in-out;
+  }
 }
 .word-list-item:hover {
   background-color: colors.$accent-color;
+
+  div, svg {
+    color: colors.$font-color;
+    stroke: colors.$font-color;
+  }
 }
 
 .missed-word {
@@ -414,6 +424,7 @@ body {
 
   .missed-count {
     color: colors.$accent-color;
+    transition: color 0.3s ease-in-out;
   }
 }
 
