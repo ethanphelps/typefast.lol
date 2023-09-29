@@ -1,4 +1,4 @@
-import { ModeAction, ModeActions, ModeState, ModeStateProperties, ModeStateProperty } from "../reducers/mode-reducer";
+import { ModeState } from "../reducers/mode-reducer";
 import { WordsSources } from "../services/words/words.interface";
 
 export const TypingModes = {
@@ -45,14 +45,6 @@ export type OptionCategoryValue = OptionCategoriesType[keyof OptionCategoriesTyp
 export type OptionCategoryDisplay = OptionCategoriesType[keyof OptionCategoriesType]['display'];
 
 
-// export const FixedWordExerciseLengths = {
-//     SHORT: 10,
-//     MEDIUM: 25,
-//     LONG: 50,
-//     EXTRA_LONG: 100,
-//     SUPER_LONG: 250,
-// } as const;
-// export type FixedWordExerciseLength = ObjectValues<typeof FixedWordExerciseLengths>;
 export const FixedWordExerciseLengths = {
     SHORT: { value: 10, display: 10 },
     MEDIUM: { value: 25, display: 25 },
@@ -214,7 +206,6 @@ export const OptionValuesByCategory: Record<OptionCategoryValue, OptionItemConfi
  * For displaying the option category titles for a given mode on the right half of the mode options view 
  */
 export const ModeOptions: Record<TypingMode, OptionCategory[]> = {
-    // [TypingModes.FIXED]: [OptionCategories.COUNT, OptionCategories.PUNCTUATION, OptionCategories.NUMBERS, OptionCategories.WORDS_SOURCE, OptionCategories.FORCE_CORRECTIONS],
     [TypingModes.FIXED]: [OptionCategories.COUNT, OptionCategories.PUNCTUATION, OptionCategories.SYMBOLS, OptionCategories.PARENTHESES, OptionCategories.NUMBERS, OptionCategories.WORDS_SOURCE, OptionCategories.FORCE_CORRECTIONS],
     [TypingModes.TIMED]: [OptionCategories.DURATION, OptionCategories.PUNCTUATION, OptionCategories.NUMBERS, OptionCategories.WORDS_SOURCE, OptionCategories.FORCE_CORRECTIONS],
     [TypingModes.QUOTES]: [OptionCategories.LENGTH, OptionCategories.QUOTES_SOURCE, OptionCategories.FORCE_CORRECTIONS],
@@ -224,7 +215,6 @@ export const ModeOptions: Record<TypingMode, OptionCategory[]> = {
 
 
 export const ToggleCategories = [OptionCategories.PUNCTUATION, OptionCategories.SYMBOLS, OptionCategories.PARENTHESES, OptionCategories.NUMBERS] as const;
-// export type ToggleCategory = typeof OptionCategories.PUNCTUATION | typeof OptionCategories.SYMBOLS | typeof OptionCategories.PARENTHESES | typeof OptionCategories.NUMBERS;
 export type ToggleCategory = typeof ToggleCategories[number];
 type ToggleCategoryValue = typeof ToggleCategories[number]["value"];
 export const ToggleCategoryToLabel: Record<ToggleCategoryValue, string> = {
