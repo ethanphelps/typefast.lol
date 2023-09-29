@@ -19,6 +19,7 @@ import {
     WordsSourceLabelValue 
 } from "../models/models";
 import { WordsSources } from "../services/words/words.interface";
+import * as Logger from "../utils/logger";
 
 export const ModeActions = {
     RESET: 'reset',
@@ -116,12 +117,12 @@ export const initialModeState: ModeState = {
 
 
 export const modeOptionsReducer = (state: ModeState, action: ModeDispatchInput): ModeState => {
-    console.debug(`Action: ${action.type}. Payload: ${JSON.stringify(action.payload)}`);
+    Logger.debug(`Action: ${action.type}. Payload: ${JSON.stringify(action.payload)}`);
     setStorage({ ...state, ...action.payload }, action.type);
     switch (action.type) {
         // When Mode is set, need to default options that aren't already set or are set with invalid options
         case (ModeActions.MODE_SET): {
-            console.debug(`Mode set to: ${action.payload.mode}!`);
+            Logger.debug(`Mode set to: ${action.payload.mode}!`);
             const nextMode = action.payload.mode;
             let modePriorToPractice = state.modePriorToPractice;
             if(nextMode !== TypingModes.PRACTICE) {

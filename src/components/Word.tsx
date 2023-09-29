@@ -1,4 +1,5 @@
 import React from 'react';
+import * as Logger from "../utils/logger";
 
 /**
  * TODO: highlighted vs untyped class for distinguishing current character from other characters
@@ -7,7 +8,7 @@ import React from 'react';
  * (could useMemo help with this?)
 */
 const WordComponent = ({ word, typedWord, wordIndex, currentWord }: { word: string[], typedWord: string[], wordIndex: number, currentWord: number }): React.ReactElement => {
-    // console.log("WordComponent rendered");
+    // Logger.log("WordComponent rendered");
     let displayedWord = word;
     if(typedWord.length > word.length) {
         displayedWord = [...word, ...typedWord.slice(word.length - typedWord.length)];

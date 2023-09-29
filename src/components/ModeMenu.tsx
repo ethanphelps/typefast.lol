@@ -1,4 +1,4 @@
-import React, { useEffect, useReducer, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import '../pages/landing/landing.scss';
 import { DurationModeToDurationCategory, DurationModes, ModeOptions, OptionCategories, OptionCategory, OptionCategoryDisplay, OptionCategoryValue, OptionItemConfiguration, OptionItemValue, OptionValuesByCategory, RandomTextModes, StatePropertiesByCategory, ToggleCategories, ToggleCategory, ToggleCategoryToLabel, TypingMode, TypingModeOptions, TypingModeToSourceCategory, TypingModes } from '../models/models';
 import { ModeActions, ModeState, ModeDispatchInput, ModeActionsByCategory } from '../reducers/mode-reducer';
@@ -11,16 +11,14 @@ interface ModeRowProps {
     modeName: TypingMode;
     currentMode: TypingMode;
     dispatch: React.Dispatch<React.ReducerAction<React.Reducer<ModeState, ModeDispatchInput>>>
-    dispatchNewWords: () => void;
 }
-const ModeRow = ({ modeName, currentMode, dispatch, dispatchNewWords }: ModeRowProps): React.ReactElement => {
+const ModeRow = ({ modeName, currentMode, dispatch }: ModeRowProps): React.ReactElement => {
     const cssClass = modeName === currentMode ? 'mode-item selected' : 'mode-item';
     return (
         <header
             className={cssClass}
             onClick={() => {
                 dispatch({ type: ModeActions.MODE_SET, payload: { mode: modeName } });
-                // dispatchNewWords();
             }}
         >
             <span>{modeName}</span>
@@ -30,14 +28,13 @@ const ModeRow = ({ modeName, currentMode, dispatch, dispatchNewWords }: ModeRowP
 
 
 const ModeOption = (
-    { item, selectedItem, category, state, dispatch, dispatchNewWords }:
+    { item, selectedItem, category, state, dispatch }:
         {
             item: OptionItemConfiguration;
             selectedItem: OptionItemValue; // may need to change this to OptionItemConfiguration and change ModeState to track configurations instead of just values..
             category: OptionCategory;
             state: ModeState;
             dispatch: React.Dispatch<React.ReducerAction<React.Reducer<ModeState, ModeDispatchInput>>>
-            dispatchNewWords: () => void;
         }
 ): React.ReactElement => {
     const cssClass = item.value === selectedItem ? 'mode-item selected' : 'mode-item';
@@ -51,7 +48,6 @@ const ModeOption = (
                         [StatePropertiesByCategory[category.value]]: item.value     // need to map current category to a category dispatch. pass selected item via payload
                     }
                 });
-                // dispatchNewWords();
             }} 
         >
             {item.display}
@@ -64,7 +60,7 @@ const getModeOptionStateByCategory = (state: ModeState, category: OptionCategory
     return state[StatePropertiesByCategory[category]] as Exclude<OptionItemValue, TypingMode>;
 }
 
-export const ModeRadioInput = ({ category, optionItems, state, dispatch, dispatchNewWords }: ModeOptionRowProps): React.ReactElement => {
+export const ModeRadioInput = ({ category, optionItems, state, dispatch }: ModeOptionRowProps): React.ReactElement => {
     return (
         <div className="mode-option-value-list">
             {
@@ -76,7 +72,6 @@ export const ModeRadioInput = ({ category, optionItems, state, dispatch, dispatc
                             category={category}
                             state={state}
                             dispatch={dispatch}
-                            dispatchNewWords={dispatchNewWords}
                             key={index}
                         />
                     )
@@ -87,7 +82,7 @@ export const ModeRadioInput = ({ category, optionItems, state, dispatch, dispatc
 }
 
 // MAY NOT NEED THIS: could just have separate state properties for symbols/punctuation/parentheses/etc. and not use horizontal dividers
-const ModeMultiRadioInput = ({ category, optionItems, state, dispatch, dispatchNewWords}: ModeOptionRowProps): React.ReactElement => {
+const ModeMultiRadioInput = ({ category, optionItems, state, dispatch }: ModeOptionRowProps): React.ReactElement => {
     return (
         <div className="multi-radio-input">
             
@@ -118,14 +113,13 @@ export interface ModeOptionRowProps {
     optionItems: OptionItemConfiguration[];
     state: ModeState;
     dispatch: React.Dispatch<React.ReducerAction<React.Reducer<ModeState, ModeDispatchInput>>>;
-    dispatchNewWords: () => void; // TODO: remove
     showTitle?: boolean;
 }
 
 /**
  * Each option category is mapped to a specific input component which is chosen at runtime
  */
-const ModeOptionRow = ({ category, optionItems, state, dispatch, dispatchNewWords, showTitle }: ModeOptionRowProps): React.ReactElement => {
+const ModeOptionRow = ({ category, optionItems, state, dispatch, showTitle }: ModeOptionRowProps): React.ReactElement => {
     const DynamicInputComponent = OptionCategoryToInputComponent[category.value];
     return (
         <div className="mode-option-row">
@@ -139,7 +133,6 @@ const ModeOptionRow = ({ category, optionItems, state, dispatch, dispatchNewWord
                 optionItems={optionItems}
                 state={state}
                 dispatch={dispatch}
-                dispatchNewWords={dispatchNewWords}
             />
         </div>
     );
@@ -176,7 +169,7 @@ const ModeOptionToggle = ({ category, state, dispatch }: ModeOptionToggleProps):
 /**
  * collapsed version of mode menu
  */
-const ModeMenuCollapsed = ({ state, dispatch, dispatchNewWords, setExpanded }: ModeMenuProps): React.ReactElement => {
+const ModeMenuCollapsed = ({ state, dispatch, setExpanded }: ModeMenuProps): React.ReactElement => {
     return (
         <section id="collapsed-mode-menu-container" className="typefast-card">
             <div className="collapsed-menu-select-container" id="mode-select">
@@ -185,7 +178,6 @@ const ModeMenuCollapsed = ({ state, dispatch, dispatchNewWords, setExpanded }: M
                     optionItems={OptionValuesByCategory[OptionCategories.MODE.value]}
                     state={state}
                     dispatch={dispatch}
-                    dispatchNewWords={() => {}}
                 />
             </div>
             <div className="vertical-divider"></div>
@@ -197,7 +189,6 @@ const ModeMenuCollapsed = ({ state, dispatch, dispatchNewWords, setExpanded }: M
                             optionItems={OptionValuesByCategory[DurationModeToDurationCategory[state.mode].value]}
                             state={state}
                             dispatch={dispatch}
-                            dispatchNewWords={() => {}}
                         />
                         <div className="vertical-divider"></div>
                     </>
@@ -228,7 +219,6 @@ const ModeMenuCollapsed = ({ state, dispatch, dispatchNewWords, setExpanded }: M
                             optionItems={OptionValuesByCategory[TypingModeToSourceCategory[state.mode].value]}
                             state={state}
                             dispatch={dispatch}
-                            dispatchNewWords={() => {}}
                         />
                     </div>
                     : <></>
@@ -241,7 +231,7 @@ const ModeMenuCollapsed = ({ state, dispatch, dispatchNewWords, setExpanded }: M
     )
 }
 
-const ModeMenuExpanded = ({ state, dispatch, dispatchNewWords, setExpanded }: ModeMenuProps): React.ReactElement => {
+const ModeMenuExpanded = ({ state, dispatch, setExpanded }: ModeMenuProps): React.ReactElement => {
         const menuRef = useRef<HTMLDivElement>(null);
 
         const handleOutsideClick = (event: MouseEvent) => {
@@ -270,7 +260,6 @@ const ModeMenuExpanded = ({ state, dispatch, dispatchNewWords, setExpanded }: Mo
                                         modeName={modeName}
                                         currentMode={state.mode}
                                         dispatch={dispatch}
-                                        dispatchNewWords={dispatchNewWords}
                                         key={index}
                                     />
                                 );
@@ -288,7 +277,6 @@ const ModeMenuExpanded = ({ state, dispatch, dispatchNewWords, setExpanded }: Mo
                                     optionItems={OptionValuesByCategory[category.value]}
                                     state={state}
                                     dispatch={dispatch}
-                                    dispatchNewWords={dispatchNewWords}
                                     showTitle={true}
                                     key={index}
                                 />

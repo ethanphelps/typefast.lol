@@ -4,9 +4,9 @@ import App from "./App";
 import "./global.scss";
 import { getConfig } from "./config";
 
-console.log(`Environment: ${process.env.ENV}`);
-console.log(process.env);
-console.log("Config: ", getConfig());
+console.debug(`Environment: ${process.env.ENV}`);
+console.debug(process.env);
+console.debug("Config: ", getConfig());
 
 const container = document.getElementById("root");
 const root = createRoot(container!);
