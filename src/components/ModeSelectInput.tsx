@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ModeOptionRowProps } from './ModeMenu';
-import { OptionCategoryValue, OptionItemConfiguration, OptionItemDisplay, OptionItemValue, StatePropertiesByCategory } from '../models/models';
+import { OptionItemConfiguration, OptionItemDisplay, StatePropertiesByCategory } from '../models/models';
 import { ModeActionsByCategory, ModeDispatchInput, ModeState } from '../reducers/mode-reducer';
-
+import * as Logger from "../utils/logger";
 
 
 const ModeSelectInput = ({ category, optionItems, state, dispatch }: ModeOptionRowProps): React.ReactElement => {
@@ -16,16 +16,14 @@ const ModeSelectInput = ({ category, optionItems, state, dispatch }: ModeOptionR
                 setIsOpen(false);
             }
         };
-
         window.addEventListener('click', handleOutsideClick);
-
         return () => {
             window.removeEventListener('click', handleOutsideClick);
         };
     }, []);
 
     const toggleDropdown = () => {
-        console.log('select clicked!!!', isOpen);
+        Logger.log('select clicked!!!', isOpen);
         setIsOpen(!isOpen);
     };
 
@@ -39,6 +37,7 @@ const ModeSelectInput = ({ category, optionItems, state, dispatch }: ModeOptionR
                 }
         });
     }
+
     const selectToggleClass = isOpen ? 'open' : 'closed';
     const optionsClass = `select-options ${selectToggleClass}`;
     const displayClass = `select-display ` + selectToggleClass;

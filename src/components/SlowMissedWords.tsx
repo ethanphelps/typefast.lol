@@ -1,15 +1,32 @@
 import React from 'react';
-import { ExerciseState, WordData, getMistypedWords } from '../reducers/exercise-reducer';
+import { ExerciseState, MissedWords, getMistypedWords } from '../reducers/exercise-reducer';
 import { IconButton } from './IconButton';
 import { AddItem } from '../inline-svgs';
+import * as Logger from "../utils/logger";
 
-const WordListItem = ({ word, onClick }: { word: string, onClick: React.MouseEventHandler}) => {
+// TODO: change duration notation to (x2)
+const WordListItem = ({ word, onClick, count }: { word: string, onClick: React.MouseEventHandler, count?: number}) => {
     return (
         <li className="word-list-item">
-            <div>{word}</div>
+            <div className="missed-word">
+                <div>{word}</div>
+                {
+                    count && count > 1 ? 
+                        <div className="missed-count">{`(x${count})`}</div>
+                        : <></>
+                }
+            </div>
             <IconButton image={<AddItem />} onClick={onClick}/>
         </li>
     );
+}
+
+const sortMistypedWords = (words: MissedWords): [string, number][] => {
+    let wordsList = Object.entries(words);
+    const comparator = (a: [string, number], b: [string, number]): number => {
+        return b[1] - a[1]
+    }
+    return wordsList.sort(comparator);
 }
 
 /**
@@ -22,9 +39,9 @@ const WordListItem = ({ word, onClick }: { word: string, onClick: React.MouseEve
  * create a component for each row
  */
 const SlowMissedWords = ({ exerciseState }: { exerciseState: ExerciseState }): React.ReactElement => {
-    const mistypedWords = getMistypedWords(exerciseState.wordData);
+    const mistypedWords = sortMistypedWords(getMistypedWords(exerciseState.wordData));
     const wordListItemClicked = (event: React.MouseEvent) => {
-        console.log("word list item clicked!!!");
+        Logger.log("word list item clicked!!!");
     }
     const tempSlowWords = ["just", "a", "test"];
     return (
@@ -38,8 +55,8 @@ const SlowMissedWords = ({ exerciseState }: { exerciseState: ExerciseState }): R
                 </div>
                 <ul>
                     {
-                        mistypedWords.map((word: WordData, index: number) => {
-                            return <WordListItem word={word.word} onClick={wordListItemClicked} key={index}/>
+                        mistypedWords.map((word, index: number) => {
+                            return <WordListItem word={word[0]} onClick={wordListItemClicked} count={word[1]} key={index}/>
                         })
                     }
                 </ul>

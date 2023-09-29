@@ -19,6 +19,7 @@ import {
     WordsSourceLabelValue 
 } from "../models/models";
 import { WordsSources } from "../services/words/words.interface";
+import * as Logger from "../utils/logger";
 
 export const ModeActions = {
     RESET: 'reset',
@@ -27,6 +28,8 @@ export const ModeActions = {
     DURATION_SET: 'duration-set',
     QUOTES_LENGTH_SET: 'quotes_length-set',
     PUNCTUATION_SET: 'punctuation-set',
+    SYMBOLS_SET: 'symbols-set',
+    PARENTHESES_SET: 'parentheses-set',
     NUMBERS_SET: 'numbers-set',
     WORDS_SOURCE_SET: 'words_source-set',
     QUOTES_SOURCE_SET: 'quotes_source-set',
@@ -83,6 +86,8 @@ export interface ModeState {
     duration: TimedExerciseDurationValue;
     quotesLength: QuotesExerciseLengthValue;
     punctuation: boolean;
+    symbols: boolean;
+    parentheses: boolean;
     numbers: boolean;
     wordsSource: WordsSourceLabelValue; // todo: reconcile words source state values and words source values into a single source of truth
     quotesSource: QuotesSourceLabelValue; // todo: figure out how to combine quote length and source states to get the right quotes
@@ -100,6 +105,8 @@ export const initialModeState: ModeState = {
     duration: TimedExerciseDurations.MEDIUM.value,
     quotesLength: QuotesExerciseLengths.MEDIUM.value,
     punctuation: false,
+    symbols: false,
+    parentheses: false,
     numbers: false,
     wordsSource: WordsSources.ENGLISH_BASIC,
     quotesSource: QuotesSourceLabels.ALL.value,
@@ -110,12 +117,12 @@ export const initialModeState: ModeState = {
 
 
 export const modeOptionsReducer = (state: ModeState, action: ModeDispatchInput): ModeState => {
-    console.debug(`Action: ${action.type}. Payload: ${JSON.stringify(action.payload)}`);
+    Logger.debug(`Action: ${action.type}. Payload: ${JSON.stringify(action.payload)}`);
     setStorage({ ...state, ...action.payload }, action.type);
     switch (action.type) {
         // When Mode is set, need to default options that aren't already set or are set with invalid options
         case (ModeActions.MODE_SET): {
-            console.debug(`Mode set to: ${action.payload.mode}!`);
+            Logger.debug(`Mode set to: ${action.payload.mode}!`);
             const nextMode = action.payload.mode;
             let modePriorToPractice = state.modePriorToPractice;
             if(nextMode !== TypingModes.PRACTICE) {
@@ -148,6 +155,16 @@ export const modeOptionsReducer = (state: ModeState, action: ModeDispatchInput):
             return {
                 ...state,
                 punctuation: action.payload.punctuation
+            }
+        case (ModeActions.SYMBOLS_SET):
+            return {
+                ...state,
+                symbols: action.payload.symbols
+            }
+        case (ModeActions.PARENTHESES_SET):
+            return {
+                ...state,
+                parentheses: action.payload.parentheses
             }
         case (ModeActions.NUMBERS_SET):
             return {
@@ -188,10 +205,13 @@ export const modeOptionsReducer = (state: ModeState, action: ModeDispatchInput):
 
 // using ModeActions const object here does NOT cause the runtime undefined error??
 export const ModeActionsByCategory: Record<OptionCategoryValue, ModeAction> = {
+    [OptionCategories.MODE.value]: ModeActions.MODE_SET,
     [OptionCategories.COUNT.value]: ModeActions.WORD_COUNT_SET,
     [OptionCategories.DURATION.value]: ModeActions.DURATION_SET,
     [OptionCategories.LENGTH.value]: ModeActions.QUOTES_LENGTH_SET,
     [OptionCategories.PUNCTUATION.value]: ModeActions.PUNCTUATION_SET,
+    [OptionCategories.SYMBOLS.value]: ModeActions.SYMBOLS_SET,
+    [OptionCategories.PARENTHESES.value]: ModeActions.PARENTHESES_SET,
     [OptionCategories.NUMBERS.value]: ModeActions.NUMBERS_SET,
     [OptionCategories.WORDS_SOURCE.value]: ModeActions.WORDS_SOURCE_SET,
     [OptionCategories.QUOTES_SOURCE.value]: ModeActions.QUOTES_SOURCE_SET,

@@ -1,10 +1,10 @@
 import { QuotesCollection } from './words.interface';
 import Words from './basic-words.json';
 import { TypingModes } from '../../models/models';
-import { ModeActions, ModeDispatchInput, ModeState } from '../../reducers/mode-reducer';
+import { ModeState } from '../../reducers/mode-reducer';
 import _quotes from './quotes/english.json';
-import { ExerciseDispatchInput, ExerciseState, TypingActions } from '../../reducers/exercise-reducer';
 const Quotes = _quotes as QuotesCollection;
+import * as Logger from '../../utils/logger';
 
 /**
  * Service for getting words from a source. Randomized words are stored as internal state and can 
@@ -19,8 +19,8 @@ const Quotes = _quotes as QuotesCollection;
  */
 
 const getRandomWords = (state: ModeState): string[] => {
-    console.log('ModeState inside wordsService: ', state)
-    console.debug(`Getting ${state.wordCount} random words from ${state.wordsSource}.`)
+    Logger.log('ModeState inside wordsService: ', state)
+    Logger.debug(`Getting ${state.wordCount} random words from ${state.wordsSource}.`)
     let result: string[] = [];
     const words = Words[state.wordsSource];
     for (let i = 0; i < state.wordCount; i++) {
@@ -32,9 +32,9 @@ const getRandomWords = (state: ModeState): string[] => {
 
 // const getQuote = (state: ModeState, dispatch: React.Dispatch<React.ReducerAction<React.Reducer<ExerciseState, ExerciseDispatchInput>>>): string[] => {
 const getQuote = (state: ModeState, setQuoteCitation: React.Dispatch<React.SetStateAction<string>>): string[] => {
-    console.debug(`Getting a ${state.quotesLength} quote!`);
+    Logger.debug(`Getting a ${state.quotesLength} quote!`);
     const randomIndex = Math.floor(Math.random() * Quotes['sections'][state.quotesLength].length);
-    console.debug(`Random index: ${randomIndex}`);
+    Logger.debug(`Random index: ${randomIndex}`);
     const quoteId = Quotes['sections'][state.quotesLength][randomIndex];
     const quote = Quotes['quotes'][quoteId];
     // dispatch({
@@ -45,7 +45,7 @@ const getQuote = (state: ModeState, setQuoteCitation: React.Dispatch<React.SetSt
     // })
     setQuoteCitation(quote.source);
     const quoteWordArray = quote.text.split(' ');
-    console.debug('QUOTE: ', quoteWordArray);
+    Logger.debug('QUOTE: ', quoteWordArray);
     return quoteWordArray;
 }
 

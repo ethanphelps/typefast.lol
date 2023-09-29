@@ -3,6 +3,7 @@ import { TypingModes } from '../models/models';
 import WordComponent from './Word';
 import { ModeState } from '../reducers/mode-reducer';
 import { ExerciseDispatchInput, ExerciseState, ExerciseStatus, TypingActions, WordData, typedWord } from '../reducers/exercise-reducer';
+import * as Logger from "../utils/logger";
 
 const deleteInputTypes = ['deleteContentBackward', 'deleteWordBackward', 'deleteSoftLineBackward', 'deleteHardLineBackward'];
 
@@ -23,18 +24,11 @@ export const TypingArea = ({
 
     useEffect(() => {
         inputRef.current.focus();
-        const focusInputElement = (event: KeyboardEvent) => {
-            inputRef.current.focus();
-        }
-        document.addEventListener('keydown', focusInputElement);
-        return () => {
-            document.removeEventListener('keydown', focusInputElement);
-        };
     }, [])
 
 
-    console.log(`currentWord: ${state.currentWord}`);
-    console.log(`typedWord.length: `, state.wordData[state.currentWord]);
+    Logger.log(`currentWord: ${state.currentWord}`);
+    Logger.log(`typedWord.length: `, state.wordData[state.currentWord]);
 
 
     /**
@@ -50,7 +44,11 @@ export const TypingArea = ({
          * TODO: maybe combine CHARACTER_DELETED and PREVIOUS_WORD into one reducer action
          */
         const handleKeyDown = (event: KeyboardEvent): void => {
-            console.log('keydown');
+            Logger.log('keydown');
+            if(state.status === ExerciseStatus.IN_PROGRESS || state.status === ExerciseStatus.READY) {
+                inputRef.current.focus();
+            }
+
             if(
                 state.status === ExerciseStatus.IN_PROGRESS && 
                 state.currentWord > 0 && 
@@ -58,7 +56,7 @@ export const TypingArea = ({
                 isBackspace(event) && 
                 state.wordData[state.currentWord].typedCharArray.length == 0
             ) {
-                console.log("PREVIOUS_WORD");
+                Logger.log("PREVIOUS_WORD");
                 dispatch({
                     type: TypingActions.PREVIOUS_WORD
                 });
@@ -72,7 +70,7 @@ export const TypingArea = ({
 
 
     const isDeleteInputType = (event: InputEvent): boolean => {
-        console.log(event.inputType);
+        Logger.log(event.inputType);
         return deleteInputTypes.includes(event.inputType);
     }
 
@@ -111,10 +109,13 @@ export const TypingArea = ({
     }
 
     const handleInput = (event: React.ChangeEvent) => {
-        console.log(`handleInput: "${inputRef.current.value}"`);
-        if (state.currentWord >= state.words.length || !state.canType) {
+        if (state.currentWord >= state.words.length || !state.canType || earlySpace(state, event)) {
             return;
         }
+
+        Logger.log(`handleInput: "${inputRef.current.value}"`);
+        const inputValue = (event.target as HTMLInputElement).value;
+
         if (!state.typingStarted) {
             dispatch({
                 type: TypingActions.TYPING_STARTED, 
@@ -124,7 +125,6 @@ export const TypingArea = ({
                 }
             });
         }
-        const inputValue = (event.target as HTMLInputElement).value;
 
         if (isDelete(event, inputValue)) {
             handleDeletion(inputValue.trim()); // .trim() to fix safari bug not deleting space when going to previous word. see if any reason not to trim(). 
@@ -132,7 +132,7 @@ export const TypingArea = ({
         }
 
         if(inputValue.length > 0) {
-            console.log("input triggered a state update");
+            Logger.log("input triggered a state update");
             dispatch({
                 type: TypingActions.CHARACTER_TYPED,
                 payload: {
@@ -184,6 +184,10 @@ export const TypingArea = ({
     );
 }
 
+const earlySpace = (state: ExerciseState, event: React.ChangeEvent): boolean => {
+    return (event.nativeEvent as InputEvent).data === " " && state.wordData[state.currentWord].typedCharArray.length === 0;
+}
+
 const getInvisibleInputElementValue = (state: ExerciseState): string => {
     let returnValue;
     if(state.wordData[state.currentWord]?.typedCharArray.length > 0) {
@@ -191,7 +195,7 @@ const getInvisibleInputElementValue = (state: ExerciseState): string => {
     } else  {
         returnValue = " ";
     }
-    console.log(`getInvisibleInputElementValue: "${returnValue}"`);
+    Logger.log(`getInvisibleInputElementValue: "${returnValue}"`);
     return returnValue;
 }
 
@@ -232,6 +236,6 @@ export const getWordDataList = (selectedWords: string[]): WordData[] => {
 }
 
 const isBackspace = (event: KeyboardEvent): boolean => {
-    console.log(event);
-    return event.key === 'Backspace' || event.key === 'Delete';
+    Logger.log(event);
+    return event.key === 'Backspace' || event.key === 'delete';
 }

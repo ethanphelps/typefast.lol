@@ -1,15 +1,14 @@
 import React, { useEffect, useMemo, useReducer, useState } from 'react';
 import './landing.scss';
 import { TypingArea, getWordDataList } from '../../components/TypingArea';
-import { WordsSource, WordsSources } from '../../services/words/words.interface';
 import { ModeMenu } from '../../components/ModeMenu';
 import { MODE_STATE, ModeActions, ModeState, initialModeState, modeOptionsReducer } from '../../reducers/mode-reducer';
-import { ExerciseState, ExerciseStatus, ExerciseStatusValue, TypingActions, WordData, exerciseReducer, getMistypedWords } from '../../reducers/exercise-reducer';
+import { ExerciseState, ExerciseStatus, ExerciseStatusValue, MissedWords, TypingActions, exerciseReducer, getMistypedWords } from '../../reducers/exercise-reducer';
 import Stats from '../../components/Stats';
 import SlowMissedWords from '../../components/SlowMissedWords';
-import { TypingModes } from '../../models/models';
-// import WordsService from '../../services/words/words-service';
+import { OptionCategories, TypingModes } from '../../models/models';
 import * as WordsService from '../../services/words/words-service';
+import * as Logger from '../../utils/logger';
 
 const PRACTICE_WORD_REPEAT_COUNT = 8;
 
@@ -23,12 +22,6 @@ const Header = ({ }): React.ReactElement => {
 };
 
 
-// todo: see if words list should be passed into TypingArea component?
-
-/**
- * should randomizedWords and wordsJson state live in TypingArea component since we only want that to rerender when
- * the words are reset?
- */
 export const Landing = (): React.ReactElement => {
     const [quoteCitation, setQuoteCitation] = useState<string>("");
 
@@ -38,21 +31,15 @@ export const Landing = (): React.ReactElement => {
         (initialModeState: ModeState): ModeState => {
             const sessionState = sessionStorage.getItem(MODE_STATE);
             const parsedState: Partial<ModeState> = sessionState ? JSON.parse(sessionState) : {};
+            if(OptionCategories.MODE.value in parsedState && parsedState.mode === TypingModes.PRACTICE) {
+                parsedState.mode = parsedState.modePriorToPractice || TypingModes.FIXED;
+            }
             return {
                 ...initialModeState,
                 ...parsedState
             }
         }
     );
-
-    // this may cause issues with practice mode not being able to save words from previous exercise
-    // why do we need to re-instantiate the words service when these state values change? can't we just instantiate it once
-    // and then just reset the state to get values from different sources?
-    // we're relying on re-renders to get new words by re-instantiating the service. should be able to get new words another way?
-    // const wordsService = useMemo(() => {
-    //     return new WordsService();
-    // }, []);
-
 
 
     /**
@@ -65,7 +52,7 @@ export const Landing = (): React.ReactElement => {
         exerciseReducer,
         null, // this may get called every time Landing is rerendered but it's okay bc only initial value is ever used. rest are ignored
         (): ExerciseState => {
-            console.log("setting initial states for the reducers!");
+            Logger.log("setting initial states for the reducers!");
             const words = WordsService.getWords(modeState, setQuoteCitation);
             return {
                 status: ExerciseStatus.READY,
@@ -104,6 +91,7 @@ export const Landing = (): React.ReactElement => {
     }, [modeState.wordCount, modeState.wordsSource, modeState.mode, modeState.quotesLength, modeState.quotesSource]);
 
     const dispatchNewWords = () => {
+        Logger.log("DISPATCH NEW WORDS CALLED");
         const newWords = WordsService.getWords(modeState, setQuoteCitation); // TODO: make words service just some functions that you can import. it doesn't need to be a full class
         dispatch({
             type: TypingActions.RESET,
@@ -142,9 +130,9 @@ export const Landing = (): React.ReactElement => {
     }
     
     const practiceMissedWords = () => {
-        const mistypedWords = getMistypedWords(state.wordData).map((word: WordData) => word.word);
-        if(mistypedWords.length === 0) {
-            console.debug("You haven't missed any words!!!");
+        const mistypedWords = getMistypedWords(state.wordData);
+        if(Object.keys(mistypedWords).length === 0) {
+            Logger.debug("You haven't missed any words!!!");
             return;
         }
         const practiceWords = getPracticeWords(mistypedWords);
@@ -164,8 +152,8 @@ export const Landing = (): React.ReactElement => {
     }
 
     // TODO: move this into a utils file of functions 
-    const getPracticeWords = (mistypedWords: string[]) => {
-        const newWordsList = mistypedWords.reduce((result: string[], current: string) => {
+    const getPracticeWords = (mistypedWords: MissedWords): string[] => {
+        const newWordsList = Object.keys(mistypedWords).reduce((result: string[], current: string) => {
             const repetitions = Array(PRACTICE_WORD_REPEAT_COUNT).fill(current);
             return result.concat(repetitions);
         }, []);

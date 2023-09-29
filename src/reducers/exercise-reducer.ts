@@ -2,6 +2,7 @@
 
 import { ObjectValues, TypingMode, TypingModes } from "../models/models";
 import { ModeState } from "./mode-reducer";
+import * as Logger from "../utils/logger";
 
 // TODO: remove 'word' from state and rely on wordCharArray instead
 export interface WordData {
@@ -70,7 +71,7 @@ export interface ExerciseState {
 export const exerciseReducer = (state: ExerciseState, action: ExerciseDispatchInput): ExerciseState => {
     switch (action.type) {
         case (TypingActions.RESET):
-            console.debug(`Clearing timeout ID ${state.timeoutId}`);
+            Logger.debug(`Clearing timeout ID ${state.timeoutId}`);
             clearTimeout(state.timeoutId);
             return {
                 ...state,
@@ -94,7 +95,7 @@ export const exerciseReducer = (state: ExerciseState, action: ExerciseDispatchIn
             }
 
         case (TypingActions.TYPING_STARTED):
-            console.debug('Initial states:', state);
+            Logger.debug('Initial states:', state);
             return {
                 ...state,
                 status: ExerciseStatus.IN_PROGRESS,
@@ -128,10 +129,10 @@ export const exerciseReducer = (state: ExerciseState, action: ExerciseDispatchIn
             const newWordData = [...state.wordData];
             const numCharsDeleted = getDeletedCharacters(action.payload.inputValue, state.wordData[state.currentWord].typedCharArray);
             const deletedChars = typedWord(state).slice(-numCharsDeleted);
-            console.debug('deleted chars: ', `"${deletedChars}"`);
+            Logger.debug('deleted chars: ', `"${deletedChars}"`);
             const length = state.wordData[state.currentWord].typedCharArray.length;
             newWordData[state.currentWord].typedCharArray = state.wordData[state.currentWord].typedCharArray.slice(0, length - numCharsDeleted);
-            // console.debug('new char array: ', newWordData[state.currentWord].typedCharArray);
+            // Logger.debug('new char array: ', newWordData[state.currentWord].typedCharArray);
             return {
                 ...state,
                 ...action.payload,
@@ -141,11 +142,6 @@ export const exerciseReducer = (state: ExerciseState, action: ExerciseDispatchIn
 
         case (TypingActions.WORD_COMPLETE):
             const correct = action.payload.inputValue === state.words[state.currentWord];
-            if (correct) {
-                // console.log('word was typed correctly!');
-            } else {
-                // console.log(`word was typed incorrectly! word should have been: ${state.words[state.currentWord]}. word typed: ${typedWord(state)}`);
-            }
             const newWordData = [...state.wordData];
             const newClassName = correct ? "correct" : "incorrect";
             let updatedTypedCharArray = state.wordData[state.currentWord].typedCharArray;
@@ -178,7 +174,7 @@ export const exerciseReducer = (state: ExerciseState, action: ExerciseDispatchIn
         case (TypingActions.PREVIOUS_WORD): {
             if (state.currentWord >= 1) {
                 const newWordData = [...state.wordData];
-                console.log(`reducer - previous word is "${newWordData[state.currentWord - 1].typedCharArray}"`);
+                Logger.debug(`reducer - previous word is "${newWordData[state.currentWord - 1].typedCharArray}"`);
                 newWordData[state.currentWord - 1].typedCharArray.push(' ');
                 return {
                     ...state,
@@ -189,18 +185,18 @@ export const exerciseReducer = (state: ExerciseState, action: ExerciseDispatchIn
         }
 
         case (TypingActions.EXERCISE_COMPLETE): {
-            console.debug(`final currentWord value: ${state.currentWord}`);
-            console.debug('final states: ', state);
+            Logger.debug(`final currentWord value: ${state.currentWord}`);
+            Logger.debug('final states: ', state);
             const finalWordData: WordData[] = getFinalWordData(state, action.payload.mode || TypingModes.FIXED);
-            console.debug('final Word data: ', finalWordData);
+            Logger.debug('final Word data: ', finalWordData);
             const totalCharacters = getTotalCharacters(finalWordData.map((wordData) => wordData.word));
             const correctCharacters = getCorrectCharacters(finalWordData);
-            console.log(`number of words: ${state.words.length}. current word: ${state.currentWord + 1}`);
-            console.log('Total characters: ', totalCharacters)
+            Logger.log(`number of words: ${state.words.length}. current word: ${state.currentWord + 1}`);
+            Logger.log('Total characters: ', totalCharacters)
             const wpm = calculateWpm(state.startTime, Date.now(), correctCharacters, state.incorrectCharacters);
             const accuracy = calculateNaiveAccuracy(totalCharacters, correctCharacters);
             const mistypedWords = getMistypedWords(finalWordData);
-            console.log('Mistyped words: ', mistypedWords);
+            Logger.log('Mistyped words: ', mistypedWords);
             return {
                 ...state,
                 ...action.payload,
@@ -217,11 +213,12 @@ export const exerciseReducer = (state: ExerciseState, action: ExerciseDispatchIn
     }
 }
 
-export const getMistypedWords = (wordData: WordData[]): WordData[] => {
-    const mistyped: WordData[] = [];
+export type MissedWords = Record<string, number>
+export const getMistypedWords = (wordData: WordData[]): MissedWords => {
+    const mistyped: MissedWords = {};
     wordData.forEach((word: WordData) => {
         if (word.mistyped) {
-            mistyped.push(word);
+            mistyped[word.word] = word.word in mistyped ? mistyped[word.word] + 1 : 1;
         }
     })
     return mistyped;
@@ -242,7 +239,7 @@ const setTimedModeTimer = (
     dispatch: React.Dispatch<React.ReducerAction<React.Reducer<ExerciseState, ExerciseDispatchInput>>>
 ): NodeJS.Timeout | null => {
     if (modeState.mode === TypingModes.TIMED) {
-        console.debug(`Mode is ${modeState.mode} and timer is being set for ${modeState.duration} seconds!`);
+        Logger.debug(`Mode is ${modeState.mode} and timer is being set for ${modeState.duration} seconds!`);
         return setTimeout(() => {
             dispatch({
                 type: TypingActions.EXERCISE_COMPLETE,
@@ -259,7 +256,7 @@ export const typedWord = (state: ExerciseState): string => {
 }
 
 const getDeletedCharacters = (inputValue: string, typedCharArray: string[]): number => {
-    console.log(`typedWordvalue: "${typedCharArray.join('')}", inputValue: "${inputValue}"`);
+    Logger.log(`typedWordvalue: "${typedCharArray.join('')}", inputValue: "${inputValue}"`);
     return inputValue.length < typedCharArray.length ? typedCharArray.length - inputValue.length : 0;
 }
 
@@ -280,16 +277,16 @@ const getTotalCharacters = (words: string[]): number => {
 }
 
 const getCorrectCharacters = (wordData: WordData[]): number => {
-    console.log('typed words: ', wordData);
+    Logger.log('typed words: ', wordData);
     let sum = 0;
     for (let i = 0; i < wordData.length; i++) {
         if (wordTypedCorrectly(wordData[i].wordCharArray, wordData[i].typedCharArray)) {
             sum += wordData[i].typedCharArray.length + 1;
         } else {
-            console.log(`mistyped word at index ${i}. typed word: ${wordData[i]}. correct word: ${wordData[i].word}`);
+            Logger.log(`mistyped word at index ${i}. typed word: ${wordData[i]}. correct word: ${wordData[i].word}`);
         }
     }
-    console.log('correct characters: ', sum);
+    Logger.log('correct characters: ', sum);
     return sum;
 }
 
@@ -313,18 +310,18 @@ const wordIncrementallyCorrect = (targetWord: string[], typedWord: string[]) => 
  * WPM = characters per min / 5
  */
 const calculateWpm = (startTime: number, endTime: number, correctCharacters: number, incorrectCharacters: number) => {
-    console.log(`start time: ${startTime}, end time: ${endTime}`);
+    Logger.log(`start time: ${startTime}, end time: ${endTime}`);
     const seconds = (endTime - startTime) / 1000;
     const fractionOfMinute = seconds / 60;
     const wordsTyped = correctCharacters / 5;
     const wpm = wordsTyped / fractionOfMinute;
-    console.log('seconds: ', seconds);
-    console.log('wpm: ', wpm);
+    Logger.log('seconds: ', seconds);
+    Logger.log('wpm: ', wpm);
     return wpm;
 }
 
 const calculateNaiveAccuracy = (totalCharacters: number, correctCharacters: number) => {
     const accuracy = (correctCharacters / totalCharacters) * 100;
-    console.log(`accuracy: ${accuracy}`);
+    Logger.log(`accuracy: ${accuracy}`);
     return accuracy;
 }
