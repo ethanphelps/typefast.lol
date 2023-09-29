@@ -408,6 +408,15 @@ body {
   background-color: colors.$accent-color;
 }
 
+.missed-word {
+  display: flex;
+  gap: 10px;
+
+  .missed-count {
+    color: colors.$accent-color;
+  }
+}
+
 // --- Missed and Slow Words --- //
 
 

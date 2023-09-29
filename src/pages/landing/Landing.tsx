@@ -1,15 +1,14 @@
 import React, { useEffect, useMemo, useReducer, useState } from 'react';
 import './landing.scss';
 import { TypingArea, getWordDataList } from '../../components/TypingArea';
-import { WordsSource, WordsSources } from '../../services/words/words.interface';
 import { ModeMenu } from '../../components/ModeMenu';
 import { MODE_STATE, ModeActions, ModeState, initialModeState, modeOptionsReducer } from '../../reducers/mode-reducer';
-import { ExerciseState, ExerciseStatus, ExerciseStatusValue, TypingActions, WordData, exerciseReducer, getMistypedWords } from '../../reducers/exercise-reducer';
+import { ExerciseState, ExerciseStatus, ExerciseStatusValue, MissedWords, TypingActions, exerciseReducer, getMistypedWords } from '../../reducers/exercise-reducer';
 import Stats from '../../components/Stats';
 import SlowMissedWords from '../../components/SlowMissedWords';
 import { TypingModes } from '../../models/models';
-// import WordsService from '../../services/words/words-service';
 import * as WordsService from '../../services/words/words-service';
+import * as Logger from '../../utils/logger';
 
 const PRACTICE_WORD_REPEAT_COUNT = 8;
 
@@ -65,7 +64,7 @@ export const Landing = (): React.ReactElement => {
         exerciseReducer,
         null, // this may get called every time Landing is rerendered but it's okay bc only initial value is ever used. rest are ignored
         (): ExerciseState => {
-            console.log("setting initial states for the reducers!");
+            Logger.log("setting initial states for the reducers!");
             const words = WordsService.getWords(modeState, setQuoteCitation);
             return {
                 status: ExerciseStatus.READY,
@@ -104,7 +103,7 @@ export const Landing = (): React.ReactElement => {
     }, [modeState.wordCount, modeState.wordsSource, modeState.mode, modeState.quotesLength, modeState.quotesSource]);
 
     const dispatchNewWords = () => {
-        console.log("DISPATCH NEW WORDS CALLED");
+        Logger.log("DISPATCH NEW WORDS CALLED");
         const newWords = WordsService.getWords(modeState, setQuoteCitation); // TODO: make words service just some functions that you can import. it doesn't need to be a full class
         dispatch({
             type: TypingActions.RESET,
@@ -143,9 +142,9 @@ export const Landing = (): React.ReactElement => {
     }
     
     const practiceMissedWords = () => {
-        const mistypedWords = getMistypedWords(state.wordData).map((word: WordData) => word.word);
-        if(mistypedWords.length === 0) {
-            console.debug("You haven't missed any words!!!");
+        const mistypedWords = getMistypedWords(state.wordData);
+        if(Object.keys(mistypedWords).length === 0) {
+            Logger.debug("You haven't missed any words!!!");
             return;
         }
         const practiceWords = getPracticeWords(mistypedWords);
@@ -165,8 +164,8 @@ export const Landing = (): React.ReactElement => {
     }
 
     // TODO: move this into a utils file of functions 
-    const getPracticeWords = (mistypedWords: string[]) => {
-        const newWordsList = mistypedWords.reduce((result: string[], current: string) => {
+    const getPracticeWords = (mistypedWords: MissedWords): string[] => {
+        const newWordsList = Object.keys(mistypedWords).reduce((result: string[], current: string) => {
             const repetitions = Array(PRACTICE_WORD_REPEAT_COUNT).fill(current);
             return result.concat(repetitions);
         }, []);

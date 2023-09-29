@@ -3,6 +3,7 @@ import { TypingModes } from '../models/models';
 import WordComponent from './Word';
 import { ModeState } from '../reducers/mode-reducer';
 import { ExerciseDispatchInput, ExerciseState, ExerciseStatus, TypingActions, WordData, typedWord } from '../reducers/exercise-reducer';
+import * as Logger from "../utils/logger";
 
 const deleteInputTypes = ['deleteContentBackward', 'deleteWordBackward', 'deleteSoftLineBackward', 'deleteHardLineBackward'];
 
@@ -26,8 +27,8 @@ export const TypingArea = ({
     }, [])
 
 
-    console.log(`currentWord: ${state.currentWord}`);
-    console.log(`typedWord.length: `, state.wordData[state.currentWord]);
+    Logger.log(`currentWord: ${state.currentWord}`);
+    Logger.log(`typedWord.length: `, state.wordData[state.currentWord]);
 
 
     /**
@@ -43,7 +44,7 @@ export const TypingArea = ({
          * TODO: maybe combine CHARACTER_DELETED and PREVIOUS_WORD into one reducer action
          */
         const handleKeyDown = (event: KeyboardEvent): void => {
-            console.log('keydown');
+            Logger.log('keydown');
             if(state.status === ExerciseStatus.IN_PROGRESS || state.status === ExerciseStatus.READY) {
                 inputRef.current.focus();
             }
@@ -55,7 +56,7 @@ export const TypingArea = ({
                 isBackspace(event) && 
                 state.wordData[state.currentWord].typedCharArray.length == 0
             ) {
-                console.log("PREVIOUS_WORD");
+                Logger.log("PREVIOUS_WORD");
                 dispatch({
                     type: TypingActions.PREVIOUS_WORD
                 });
@@ -69,7 +70,7 @@ export const TypingArea = ({
 
 
     const isDeleteInputType = (event: InputEvent): boolean => {
-        console.log(event.inputType);
+        Logger.log(event.inputType);
         return deleteInputTypes.includes(event.inputType);
     }
 
@@ -112,7 +113,7 @@ export const TypingArea = ({
             return;
         }
 
-        console.log(`handleInput: "${inputRef.current.value}"`);
+        Logger.log(`handleInput: "${inputRef.current.value}"`);
         const inputValue = (event.target as HTMLInputElement).value;
 
         if (!state.typingStarted) {
@@ -131,7 +132,7 @@ export const TypingArea = ({
         }
 
         if(inputValue.length > 0) {
-            console.log("input triggered a state update");
+            Logger.log("input triggered a state update");
             dispatch({
                 type: TypingActions.CHARACTER_TYPED,
                 payload: {
@@ -194,7 +195,7 @@ const getInvisibleInputElementValue = (state: ExerciseState): string => {
     } else  {
         returnValue = " ";
     }
-    console.log(`getInvisibleInputElementValue: "${returnValue}"`);
+    Logger.log(`getInvisibleInputElementValue: "${returnValue}"`);
     return returnValue;
 }
 
@@ -235,6 +236,6 @@ export const getWordDataList = (selectedWords: string[]): WordData[] => {
 }
 
 const isBackspace = (event: KeyboardEvent): boolean => {
-    console.log(event);
+    Logger.log(event);
     return event.key === 'Backspace' || event.key === 'delete';
 }
