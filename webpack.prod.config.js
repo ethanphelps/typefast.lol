@@ -26,8 +26,7 @@ module.exports = {
     }),
     new HtmlWebpackPlugin({
       template: "./src/index.html",
-      // favicon: "./public/favicon.ico"
-      favicon: "./public/sparkles.svg"
+      favicon: "./public/favicon.ico"
     }),
     new DefinePlugin({
       process: {
