@@ -16,9 +16,7 @@ const ModeSelectInput = ({ category, optionItems, state, dispatch }: ModeOptionR
                 setIsOpen(false);
             }
         };
-
         window.addEventListener('click', handleOutsideClick);
-
         return () => {
             window.removeEventListener('click', handleOutsideClick);
         };
@@ -39,6 +37,7 @@ const ModeSelectInput = ({ category, optionItems, state, dispatch }: ModeOptionR
                 }
         });
     }
+
     const selectToggleClass = isOpen ? 'open' : 'closed';
     const optionsClass = `select-options ${selectToggleClass}`;
     const displayClass = `select-display ` + selectToggleClass;
