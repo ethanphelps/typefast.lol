@@ -104,6 +104,7 @@ export const Landing = (): React.ReactElement => {
     }, [modeState.wordCount, modeState.wordsSource, modeState.mode, modeState.quotesLength, modeState.quotesSource]);
 
     const dispatchNewWords = () => {
+        console.log("DISPATCH NEW WORDS CALLED");
         const newWords = WordsService.getWords(modeState, setQuoteCitation); // TODO: make words service just some functions that you can import. it doesn't need to be a full class
         dispatch({
             type: TypingActions.RESET,

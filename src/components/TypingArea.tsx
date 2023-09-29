@@ -23,13 +23,6 @@ export const TypingArea = ({
 
     useEffect(() => {
         inputRef.current.focus();
-        // const focusInputElement = (event: KeyboardEvent) => {
-        //     inputRef.current.focus();
-        // }
-        // document.addEventListener('keydown', focusInputElement);
-        // return () => {
-        //     document.removeEventListener('keydown', focusInputElement);
-        // };
     }, [])
 
 
