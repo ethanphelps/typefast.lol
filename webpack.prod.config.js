@@ -1,5 +1,6 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const CopyWebpackPlugin = require('copy-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const { DefinePlugin } = require('webpack');
 
@@ -26,8 +27,23 @@ module.exports = {
     }),
     new HtmlWebpackPlugin({
       template: "./src/index.html",
-      // favicon: "./public/favicon.ico"
-      favicon: "./public/sparkles.svg"
+      inject: 'head',
+      customHeadContent: `
+        <link rel="apple-touch-icon" sizes="152x152" href="/apple-touch-icon.png">
+        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+        <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+        <link rel="manifest" href="/site.webmanifest">
+        <meta name="msapplication-TileColor" content="#da532c">
+        <meta name="theme-color" content="#ffffff">
+      `
+    }),
+    new CopyWebpackPlugin({
+      patterns: [
+        {
+          from: path.resolve(__dirname, 'public'), // Source directory
+          to: path.resolve(__dirname, 'dist'), // Destination directory (output folder)
+        },
+      ],
     }),
     new DefinePlugin({
       process: {
