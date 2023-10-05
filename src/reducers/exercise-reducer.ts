@@ -4,25 +4,28 @@ import { ObjectValues, TypingMode, TypingModes } from "../models/models";
 import { ModeState } from "./mode-reducer";
 import * as Logger from "../utils/logger";
 
-// TODO: remove 'word' from state and rely on wordCharArray instead
 export interface WordData {
     id: number;
     word: string;
     wordCharArray: string[];
-    typedCharArray: string[]; // char array version of word to use for char highlighting
-    incorrectAttempts: [];
+    typedCharArray: string[]; 
+    attempts: string[][];
     cssClass: string;
     mistyped: boolean;
+    startTime: number | null;
+    endTime: number | null;
+    wpm: number | null; 
 }
 
 export const TypingActions = {
     RESET: 'reset',
     QUOTE_SET: 'quote-set',
     TYPING_STARTED: 'typing-started',
+    WORD_STARTED: 'word-started',
     WORD_COMPLETE: 'word-complete',
     PREVIOUS_WORD: 'previous-word',
     CHARACTER_TYPED: 'character-typed',
-    CHARACTER_DELETED: 'character-deleted', // may be superfluous 
+    CHARACTER_DELETED: 'character-deleted', 
     EXERCISE_COMPLETE: 'exercise-complete'
 } as const;
 type TypingAction = ObjectValues<typeof TypingActions>;
@@ -57,6 +60,7 @@ export interface ExerciseState {
     incorrectCharacters: number;
     startTime: number | null;
     endTime: number | null;
+    partialReattemptStartTime: number | null;
     canType: boolean;
     wpm: number;
     accuracy: number;
@@ -104,6 +108,16 @@ export const exerciseReducer = (state: ExerciseState, action: ExerciseDispatchIn
                 timeoutId: setTimedModeTimer(action.payload.modeState, action.payload.dispatch),
             }
 
+        case (TypingActions.WORD_STARTED): {
+            Logger.debug('Word Started!');
+            const newWordData = [...state.wordData];
+            newWordData[state.currentWord].startTime = Date.now();
+            return {
+                ...state,
+                wordData: newWordData
+            }
+        }
+
         // TODO: handle multiple characters being inserted at once into the input element (maybe? copy/paste shouldn't be expected functionality)
         case (TypingActions.CHARACTER_TYPED): {
             const inputValue = action.payload.inputValue;
@@ -127,49 +141,53 @@ export const exerciseReducer = (state: ExerciseState, action: ExerciseDispatchIn
 
         case (TypingActions.CHARACTER_DELETED): {
             const newWordData = [...state.wordData];
+            let newSecondAttemptStartTime = state.partialReattemptStartTime;
             const numCharsDeleted = getDeletedCharacters(action.payload.inputValue, state.wordData[state.currentWord].typedCharArray);
             const deletedChars = typedWord(state).slice(-numCharsDeleted);
             Logger.debug('deleted chars: ', `"${deletedChars}"`);
             const length = state.wordData[state.currentWord].typedCharArray.length;
             newWordData[state.currentWord].typedCharArray = state.wordData[state.currentWord].typedCharArray.slice(0, length - numCharsDeleted);
+            if(newWordData[state.currentWord].typedCharArray.length === 0) {
+                Logger.debug('wpm times reset!');
+                newWordData[state.currentWord].startTime = null;
+                newWordData[state.currentWord].endTime = null;
+                newSecondAttemptStartTime = null;
+            }
             // Logger.debug('new char array: ', newWordData[state.currentWord].typedCharArray);
             return {
                 ...state,
                 ...action.payload,
-                wordData: newWordData
+                wordData: newWordData,
+                partialReattemptStartTime: newSecondAttemptStartTime,
             }
         }
 
-        case (TypingActions.WORD_COMPLETE):
+        case (TypingActions.WORD_COMPLETE): {
             const correct = action.payload.inputValue === state.words[state.currentWord];
             const newWordData = [...state.wordData];
             const newClassName = correct ? "correct" : "incorrect";
-            let updatedTypedCharArray = state.wordData[state.currentWord].typedCharArray;
-            if (typedWord(state).length < state.wordData[state.currentWord].word.length) {
-                let spaces = state.wordData[state.currentWord].wordCharArray
-                    .slice(typedWord(state).length - state.wordData[state.currentWord].word.length)
-                    .map((char: string) => ' ');
-                updatedTypedCharArray = [...state.wordData[state.currentWord].typedCharArray, ...spaces];
-            }
+
+            /**
+             * if space pressed early, untyped characters filled with spaces (for highlighting).
+             * TODO: remove
+             */
+            let updatedTypedCharArray = fillWithSpaces(state);
+
             newWordData[state.currentWord] = {
                 ...newWordData[state.currentWord],
                 typedCharArray: updatedTypedCharArray,
                 cssClass: newClassName,
-                mistyped: correct ? newWordData[state.currentWord].mistyped : true
-            }
-            if (state.currentWord + 1 < state.wordData.length) {
-                newWordData[state.currentWord + 1] = {
-                    ...newWordData[state.currentWord + 1],
-                    cssClass: "highlighted"
-                }
+                mistyped: correct ? newWordData[state.currentWord].mistyped : true,
+                endTime: isPartialReattempt(state.wordData[state.currentWord]) ? getPartialReattemptEndTime(state) : Date.now(),
+                attempts: getNewAttempts(state)
             }
             return {
                 ...state,
                 ...action.payload,
                 wordData: newWordData,
-                // currentWord: state.currentWord >= state.words.length - 1 ? state.currentWord : state.currentWord + 1,
                 currentWord: state.currentWord + 1,
             }
+        }
 
         case (TypingActions.PREVIOUS_WORD): {
             if (state.currentWord >= 1) {
@@ -179,28 +197,27 @@ export const exerciseReducer = (state: ExerciseState, action: ExerciseDispatchIn
                 return {
                     ...state,
                     wordData: newWordData,
-                    currentWord: state.currentWord - 1
+                    currentWord: state.currentWord - 1,
+                    partialReattemptStartTime: Date.now()
                 }
             }
         }
 
         case (TypingActions.EXERCISE_COMPLETE): {
-            Logger.debug(`final currentWord value: ${state.currentWord}`);
             Logger.debug('final states: ', state);
-            const finalWordData: WordData[] = getFinalWordData(state, action.payload.mode || TypingModes.FIXED);
+            let finalWordData: WordData[] = getFinalWordData(state, action.payload.mode || TypingModes.FIXED);
+            finalWordData = calculatePerWordWpm(finalWordData);
             Logger.debug('final Word data: ', finalWordData);
             const totalCharacters = getTotalCharacters(finalWordData.map((wordData) => wordData.word));
             const correctCharacters = getCorrectCharacters(finalWordData);
-            Logger.log(`number of words: ${state.words.length}. current word: ${state.currentWord + 1}`);
             Logger.log('Total characters: ', totalCharacters)
             const wpm = calculateWpm(state.startTime, Date.now(), correctCharacters, state.incorrectCharacters);
             const accuracy = calculateNaiveAccuracy(totalCharacters, correctCharacters);
-            const mistypedWords = getMistypedWords(finalWordData);
-            Logger.log('Mistyped words: ', mistypedWords);
             return {
                 ...state,
                 ...action.payload,
                 status: ExerciseStatus.COMPLETE,
+                wordData: finalWordData,
                 wpm: wpm,
                 accuracy: accuracy,
                 endTime: Date.now(),
@@ -212,6 +229,38 @@ export const exerciseReducer = (state: ExerciseState, action: ExerciseDispatchIn
             return state;
     }
 }
+
+
+const getNewAttempts = (state: ExerciseState): string[][] => {
+    let newAttempts = [...state.wordData[state.currentWord].attempts];
+    newAttempts.push(state.wordData[state.currentWord].typedCharArray);
+    return newAttempts;
+}
+
+
+/**
+ * Returns the new value that endTime should be set to for a given word based on the previous endTime and the amount of time spent
+ * on this reattempt. The "end time" part of the name isn't quite accurate because by using this function to modify endTime for a
+ * given word, we're changing its endTime to help calculate total time typing rather than indicate actual end time. actual end time 
+ * would be farther in the future
+ * 
+ * TODO: see if we should just store duration instead of manipulating endTime to get the right duration after the exercise
+ */
+const getPartialReattemptEndTime = (state: ExerciseState): number => {
+    const reattemptTime = Date.now() - state.partialReattemptStartTime;
+    Logger.debug(`Reattempt time was: ${reattemptTime}`);
+    return state.wordData[state.currentWord].endTime + reattemptTime;
+}
+
+
+/**
+ * returns whether or not this is a user's second attempt at typing a word, meaning they've backspaced to previous and are re-typing 
+ * part of the word
+ */
+const isPartialReattempt = (word: WordData): boolean => {
+    return word.endTime !== null;
+}
+
 
 export type MissedWords = Record<string, number>
 export const getMistypedWords = (wordData: WordData[]): MissedWords => {
@@ -225,13 +274,14 @@ export const getMistypedWords = (wordData: WordData[]): MissedWords => {
 }
 
 
+// TODO: also append final word attempt to attempts if not getting added properly
 const getFinalWordData = (state: ExerciseState, mode: TypingMode): WordData[] => {
-    if (mode === TypingModes.FIXED || mode === TypingModes.QUOTES) {
-        return [...state.wordData];
-    } else if (mode === TypingModes.TIMED) {
+    let finalWordData = [...state.wordData];
+    if (mode === TypingModes.TIMED) {
         return state.wordData.slice(0, state.currentWord); // TODO: see how to handle timer ending when last letter of last word typed correctly but no space pressed (should count as correct)
     }
-    return [...state.wordData];
+    finalWordData[finalWordData.length - 1].endTime = Date.now(); // prevent wpm of last word from being Infinity
+    return finalWordData;
 }
 
 const setTimedModeTimer = (
@@ -264,11 +314,11 @@ const wordTypedCorrectly = (word: string[], typedWord: string[]): boolean => {
     if (word.length !== typedWord.length) {
         return false;
     }
-    word.forEach((character: string, index: number) => {
-        if (character !== typedWord[index]) {
+    for(let i = 0; i < word.length; i++) {
+        if (word[i] !== typedWord[i]) {
             return false;
         }
-    });
+    }
     return true;
 }
 
@@ -292,7 +342,6 @@ const getCorrectCharacters = (wordData: WordData[]): number => {
 
 /**
  * returns incremental correctness of the word as user is typing
- * TODO: use wordCharArray and typedCharArray instead of word and typed word
  */
 const wordIncrementallyCorrect = (targetWord: string[], typedWord: string[]) => {
     if (typedWord.length > targetWord.length) {
@@ -324,4 +373,52 @@ const calculateNaiveAccuracy = (totalCharacters: number, correctCharacters: numb
     const accuracy = (correctCharacters / totalCharacters) * 100;
     Logger.log(`accuracy: ${accuracy}`);
     return accuracy;
+}
+
+const fillWithSpaces = (state: ExerciseState): string[] => {
+    let updatedTypedCharArray = [...state.wordData[state.currentWord].typedCharArray];
+    if (typedWord(state).length < state.wordData[state.currentWord].word.length) { 
+        let spaces = state.wordData[state.currentWord].wordCharArray
+            .slice(typedWord(state).length - state.wordData[state.currentWord].word.length)
+            .map((char: string) => ' ');
+        return [...updatedTypedCharArray, ...spaces];
+    }
+    return [...updatedTypedCharArray];
+}
+
+const getCorrectCharactersInWord = (word: string[], typedWord: string[]): number => {
+    let correct = 0;
+    for(let i = 0; i < typedWord.length; i++) {
+        if(i >= word.length) {
+            break;
+        }
+        if(typedWord[i] === word[i]) {
+            correct++;
+        }
+    }
+    return correct;
+}
+
+const calculatePerWordWpm = (words: WordData[]): WordData[] => {
+    return words.map((word: WordData): WordData => {
+        let wpm = null;
+        if(word.startTime && word.endTime) {
+            const time = word.endTime - word.startTime;
+            if (time < 0) {
+                Logger.error("Per-Word wpm calculation error: negative time!");
+            }
+            const correctCharacters = getCorrectCharactersInWord(word.wordCharArray, word.typedCharArray);
+            const seconds = time / 1000;
+            const fractionOfMinute = seconds / 60;
+            const wordsTyped = correctCharacters / 5;
+            wpm = wordsTyped / fractionOfMinute;
+            console.debug(`wpm for ${word.word}: ${wpm}`);
+        } else {
+            Logger.error(`Cannot calculate WPM for ${word.word}. Start time: ${word.startTime}, end time: ${word.endTime}`);
+        }
+        return {
+            ...word,
+            wpm: wpm
+        }
+    })
 }

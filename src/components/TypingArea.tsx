@@ -80,7 +80,7 @@ export const TypingArea = ({
 
     const handleDeletion = (inputValue: string) => {
         if (typedWord(state).length === 0) {
-            return;
+            return; // TODO: figure out if this is still needed
         }
         dispatch({
             type: TypingActions.CHARACTER_DELETED,
@@ -133,6 +133,13 @@ export const TypingArea = ({
 
         if(inputValue.length > 0) {
             Logger.log("input triggered a state update");
+
+            if(!wordStarted(state)) {
+                dispatch({
+                    type: TypingActions.WORD_STARTED
+                })
+            }
+
             dispatch({
                 type: TypingActions.CHARACTER_TYPED,
                 payload: {
@@ -226,16 +233,22 @@ export const getWordDataList = (selectedWords: string[]): WordData[] => {
             word: word,
             wordCharArray: word.split(''),
             typedCharArray: [],
-            incorrectAttempts: [],
+            attempts: [],
             cssClass: "",
-            mistyped: false
+            mistyped: false,
+            startTime: null,
+            endTime: null,
+            wpm: null
         }
     });
-    data[0] = { ...data[0], cssClass: "highlighted" };
     return data;
 }
 
 const isBackspace = (event: KeyboardEvent): boolean => {
     Logger.log(event);
     return event.key === 'Backspace' || event.key === 'delete';
+}
+
+const wordStarted = (state: ExerciseState): boolean => {
+    return state.wordData[state.currentWord].typedCharArray.length > 0;
 }
