@@ -4,6 +4,16 @@ body {
   height: 100%;
 }
 
+.icon-button {
+  cursor: pointer;
+  stroke: colors.$accent-color;
+  transition: stroke 0.15s ease-in-out;
+  line-height: 0;
+}
+.icon-button:hover {
+  stroke: colors.$font-color;
+}
+
 .landing-container {
   display: flex;
   flex-direction: column;
@@ -15,23 +25,39 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-  margin: 40px 20px 10px 20px; // top right bottom left
+  margin: 40px 20px 10px 20px; 
 }
 
 .body-container {
   display: flex;
   justify-content: center;
-  align-items: center;
   flex-grow: 1;
-  // min-height: 100vh;
-
   position: relative;
 }
+.body-container.typing {
+  align-items: center;
+}
 
+// .center-area {
+//   display: flex;
+//   flex-direction: column;
+//   width: 850px;
+//   overflow: hidden;
+//   align-items: center;
+//   justify-content: center;
+// }
 .center-area {
-  display: flex;
-  flex-direction: column;
-  flex-basis: 640px;
+  display: grid;
+  overflow: hidden;
+  grid-template-rows: auto 1fr auto auto;
+  // position: relative;
+}
+.section {
+  transition: top 0.8s ease-in-out, left 0.8s ease-in-out;
+}
+
+#mode-menu-wrapper {
+  position: relative;
 }
 
 .mode-menu-container {
@@ -42,6 +68,12 @@ body {
   border: none;
   border-radius: 0.4rem;
   padding: 20px;
+  // max-width: 640px; // use this to explicitly prevent mode menu from overflowing
+  
+  position: absolute;
+  bottom: -10px;
+  left: 0;
+  right: 0;
 }
 
 #mode-menu-divider {
@@ -66,7 +98,6 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  // align-items: center;
   row-gap: 5px;
 }
 
@@ -78,6 +109,7 @@ body {
 }
 .mode-item:hover {
   background-color: colors.$accent-color;
+  cursor: pointer;
 }
 .mode-item.selected {
   background-color: colors.$accent-color;
@@ -87,7 +119,6 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  // align-items: center;
   row-gap: 10px;
 }
 
@@ -118,15 +149,10 @@ body {
 .typing-container {
   display: flex;
   flex-direction: column;
-  max-width: 640px;
-  padding: 20px;
-  background-color: colors.$typing-container-color;
-  border: none;
-  border-radius: 0.4rem;
-}
-
-.typing-display {
-  // text-align: center;
+  max-width: 900px;
+  min-width: 900px;
+  // min-width: 100%;
+  // max-width: 100%;
 }
 
 .input-row {
@@ -135,19 +161,6 @@ body {
   column-gap: 10px;
 }
 
-.typing-input {
-  line-height: inherit;
-  font-family: inherit;
-  background-color: colors.$accent-color;
-  color: inherit;
-  border-radius: 0.3rem;
-  border-color: colors.$accent-color;
-  border-style: solid;
-  padding: 5px 10px 5px 10px;
-  font-size: 1.2rem;
-  transition: all 0.2s;
-  flex-grow: 1;
-}
 
 .retry-button {
   flex-grow: 0;
@@ -164,60 +177,26 @@ body {
   cursor: pointer;
 }
 
-.typing-input:focus, .typing-input:hover {
-    box-sizing: border-box;
-    border-style: solid;
-    border-color: colors.$font-color;
-    outline: none;
-    transition: all 0.2s;
-}
-
 #logo {
   font-weight: 800;
   font-size: 32px;
 }
 
-@keyframes blink {
-  0% {
-    opacity: 0;
-  }
-  49% {
-    opacity: 0;
-  }
-  50% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 1;
-  }
-}
 
 @keyframes flash { 
   0% { 
-    // background-color: colors.$accent-color;
-    // background-color: rgb(42, 42, 53, 1);
     background-color: rgb(228, 228, 228, 0.4);
-    // opacity: 1;
   }
   50% {
-    // background-color: colors.$accent-color;
-    // background-color: rgb(42, 42, 53, 0);
     background-color: rgb(228, 228, 228, 0);
-    // opacity: 0;
   }
   to {
-    // background-color: colors.$github-dark;
-    // background-color: rgb(42, 42, 53, 1);
     background-color: rgb(228, 228, 228, 0.4);
-    // opacity: 1;
   }
 }
 
 .highlighted {
-  // color: colors.$accent-color;
   color: colors.$font-color;
-  // background: colors.$accent-color;
-  // background: colors.$font-color;
   animation: flash 1s ease-in-out infinite;
 }
 
@@ -243,4 +222,258 @@ body {
 .incorrect-input:focus {
   color: colors.$incorrect-red;
   border-color: colors.$incorrect-red;
+}
+
+#invisible-input {
+  z-index: -1;
+  position: absolute;
+  pointer-events: none;
+  outline: none;
+  border: none;
+  cursor: default;
+  resize: none;
+  opacity: 0;
+  padding: 0;
+  margin: 0;
+}
+
+
+
+// --- Mode Select Input
+
+.custom-select {
+  position: relative;
+  // width: 200px; /* Set the width as needed */
+  cursor: pointer;
+}
+
+.select-display {
+  border-radius: 0.4rem;
+  background-color: colors.$accent-color;
+  padding-left: 10px;
+}
+.select-display.open {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.select-options {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  border-bottom-left-radius: 0.4rem;
+  border-bottom-right-radius: 0.4rem;
+}
+
+.select-options.closed {
+  display: none;
+}
+
+.select-options li {
+  padding: 5px 10px 5px 10px;
+  cursor: pointer;
+  background-color: colors.$typing-container-color;
+  background-color: colors.$accent-color;
+  transition: background-color 0.15s ease-in-out;
+}
+.select-options li:hover {
+  background-color: colors.$accent-color;
+  background-color: colors.$typing-container-color;
+  background-color: colors.$lighter-accent;
+}
+.select-options li:last-child {
+  border-bottom-left-radius: 0.4rem;
+  border-bottom-right-radius: 0.4rem;
+}
+
+/* Style for when the dropdown is open */
+.custom-select.open .select-options.open {
+  display: block;
+  background-color: white;
+  // z-index: 2;
+}
+
+// --- Mode Select Input
+
+// --- Summary Stats --- //
+
+.stats-container {
+  display: grid;
+  grid-template-rows: 3fr 1fr;
+  margin-bottom: 10px;
+  margin-top: 2rem;
+}
+
+#summary-buttons-container {
+  display: flex;
+  justify-content: center;
+  column-gap: 20px;
+  height: 3rem;
+  align-items: flex-end;
+  padding-bottom: 5px;
+}
+
+#stats-display-container {
+  display: grid;
+  grid-template-rows: 2fr 1fr;
+}
+
+#big-stats {
+  display: flex;
+  column-gap: 15px;
+  justify-content: center;
+  align-items: flex-end;
+  padding-bottom: 10px;
+}
+
+.stats-header {
+  font-size: 3rem;
+  height: 3rem;
+  display: flex;
+  align-items: center;
+}
+
+#stats-divider {
+  background-color: colors.$accent-color;
+  height: 3rem;
+  width: 4px;
+  margin: 0 20px 0 20px;
+  border-radius: 0.4rem;
+}
+
+#little-stats {
+  display: flex;
+  justify-content: center;
+  column-gap: 10px;
+  font-size: 0.9rem;
+  color: colors.$accent-color;
+}
+
+// --- Summary Stats --- //
+
+
+// --- Missed and Slow Words --- //
+
+.typefast-card {
+  padding: 20px;
+  background-color: colors.$typing-container-color;
+  border: none;
+  border-radius: 0.4rem;
+  margin-bottom: 20px;
+}
+
+#slow-missed-words-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 20px;
+}
+
+.words-list {
+  display: flex;
+  flex-direction: column;
+  row-gap: 5px;
+  align-self: start;
+  padding: 20px 30px 20px 30px;
+
+  ul {
+    list-style: none;
+  }
+
+  > div {
+    display: flex;
+    justify-content: center;
+  }
+}
+
+.horizontal-divider {
+  background-color: colors.$accent-color;
+  height: 5px;
+  width: 80%;
+  border-radius: 0.4rem;
+  margin-bottom: 5px;
+}
+
+.word-list-item {
+  display: flex;
+  justify-content: space-between;
+  transition: background-color 0.3s ease-in-out;
+  padding-left: 5px;
+  border-radius: 0.4rem;
+
+  div, svg {
+    transition: color 0.3s ease-in-out;
+    transition: stroke 0.3s ease-in-out;
+  }
+}
+.word-list-item:hover {
+  background-color: colors.$accent-color;
+
+  div, svg {
+    color: colors.$font-color;
+    stroke: colors.$font-color;
+  }
+}
+
+.missed-word {
+  display: flex;
+  gap: 10px;
+
+  .missed-count {
+    color: colors.$accent-color;
+    transition: color 0.3s ease-in-out;
+  }
+}
+
+// --- Missed and Slow Words --- //
+
+
+
+// --- Collapsed Mode Menu --- //
+
+#collapsed-mode-menu-container {
+  display: flex;
+  position: absolute;
+  bottom: -10px;
+  left: 0;
+  right: 0;
+}
+
+.vertical-divider {
+  background-color: colors.$accent-color;
+  height: 100%;
+  width: 4px;
+  margin: 0 5px 0 5px;
+  border-radius: 0.4rem;
+}
+
+#collapsed-mode-menu-container {
+  display: flex;
+  height: 100%;
+  height: 4rem;
+  justify-content: space-between;
+
+}
+
+.collapsed-menu-select-container {
+  width: 30%;
+}
+#mode-select {
+  padding-right: 10px;
+}
+#source-select {
+  padding-left: 10px;
+}
+
+#chevron-up {
+  margin-left: 10px;
+}
+
+#chevron-down {
+  position: absolute;
+  right: 1rem;
+  top: 1rem;
 }

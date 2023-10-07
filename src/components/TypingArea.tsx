@@ -1,10 +1,9 @@
-import React, { useEffect, useState, Suspense, ReactHTML, useReducer, useMemo, useRef } from 'react';
-import { ObjectValues, TypingMode, FixedWordExerciseLength, TypingModes } from '../models/models';
-import { WordsSource } from '../services/words/words.interface';
-import WordsService from '../services/words/words-service';
+import React, { useEffect, useRef } from 'react';
+import { TypingModes } from '../models/models';
 import WordComponent from './Word';
 import { ModeState } from '../reducers/mode-reducer';
-import { DispatchInput, ExerciseState, TypingActions, WordData, typedWord } from '../reducers/exercise-reducer';
+import { ExerciseDispatchInput, ExerciseState, ExerciseStatus, TypingActions, WordData, typedWord } from '../reducers/exercise-reducer';
+import * as Logger from "../utils/logger";
 
 const deleteInputTypes = ['deleteContentBackward', 'deleteWordBackward', 'deleteSoftLineBackward', 'deleteHardLineBackward'];
 
@@ -12,47 +11,74 @@ const deleteInputTypes = ['deleteContentBackward', 'deleteWordBackward', 'delete
 
 interface TypingAreaProps {
     state: ExerciseState;
-    dispatch: React.Dispatch<React.ReducerAction<React.Reducer<ExerciseState, DispatchInput>>>;
+    dispatch: React.Dispatch<React.ReducerAction<React.Reducer<ExerciseState, ExerciseDispatchInput>>>;
     modeState: ModeState;
-    wordsService: WordsService;
 }
 // should mode state be passed together as one prop value or as individual prop values?
 export const TypingArea = ({
     state,
     dispatch,
     modeState,
-    wordsService
 }: TypingAreaProps): React.ReactElement => {
     const inputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         inputRef.current.focus();
     }, [])
-    useEffect(() => {
-        resetStates();
-    }, [wordsService])
 
-    const resetStates = () => {
-        wordsService.resetRandomizedWords(modeState.wordCount);
-        const newWords = wordsService.getRandomizedWords();
-        dispatch({
-            type: TypingActions.RESET,
-            payload: {
-                words: newWords,
-                wordData: getWordDataList(newWords)
+
+    Logger.log(`currentWord: ${state.currentWord}`);
+    Logger.log(`typedWord.length: `, state.wordData[state.currentWord]);
+
+
+    /**
+     * critical logic for making backspace to previous words work!
+     */
+    useEffect(() => {
+
+        /**
+         * check if exercise in progress
+         * if key === backspace and input element's value is empty, then dispatch PREVIOUS_WORD
+         * 
+         * MOVING PREVIOUS_WORD DISPATCH HERE FROM HANDLEBEFOREINPUT FIXED SAFARI FORCE RELOAD BUG!!!
+         * TODO: maybe combine CHARACTER_DELETED and PREVIOUS_WORD into one reducer action
+         */
+        const handleKeyDown = (event: KeyboardEvent): void => {
+            Logger.log('keydown');
+            if(state.status === ExerciseStatus.IN_PROGRESS || state.status === ExerciseStatus.READY) {
+                inputRef.current.focus();
             }
-        });
-        inputRef.current.focus();
+
+            if(
+                state.status === ExerciseStatus.IN_PROGRESS && 
+                state.currentWord > 0 && 
+                state.currentWord < state.words.length && 
+                isBackspace(event) && 
+                state.wordData[state.currentWord].typedCharArray.length == 0
+            ) {
+                Logger.log("PREVIOUS_WORD");
+                dispatch({
+                    type: TypingActions.PREVIOUS_WORD
+                });
+            }
+        }
+        document.addEventListener('keydown', handleKeyDown);
+        return () => {
+            document.removeEventListener('keydown', handleKeyDown);
+        }
+    }, [state]);
+
+
+    const isDeleteInputType = (event: InputEvent): boolean => {
+        Logger.log(event.inputType);
+        return deleteInputTypes.includes(event.inputType);
     }
 
     const isDelete = (event: React.ChangeEvent, inputValue: string): boolean => {
-        return deleteInputTypes.includes((event.nativeEvent as InputEvent).inputType) || inputValue.length < state.wordData[state.currentWord].typedCharArray.length;
+        return isDeleteInputType(event.nativeEvent as InputEvent) || inputValue.length < state.wordData[state.currentWord].typedCharArray.length;
     }
 
-    // TODO: change this logic to handle going backwards to other words
     const handleDeletion = (inputValue: string) => {
-        console.debug('DELETE');
-        // TODO: handle going backwards to other words here
         if (typedWord(state).length === 0) {
             return;
         }
@@ -60,7 +86,6 @@ export const TypingArea = ({
             type: TypingActions.CHARACTER_DELETED,
             payload: {
                 inputValue: inputValue,
-                inputClass: getInputClass(state.words[state.currentWord], inputValue)
             }
         });
     }
@@ -68,7 +93,7 @@ export const TypingArea = ({
     const handleWordComplete = (inputValue: string) => {
         dispatch({
             type: TypingActions.WORD_COMPLETE,
-            payload: { 
+            payload: {
                 inputValue: inputValue,
                 mode: modeState.mode
             },
@@ -84,41 +109,46 @@ export const TypingArea = ({
     }
 
     const handleInput = (event: React.ChangeEvent) => {
-        if (state.currentWord >= state.words.length || !state.canType) {
+        if (state.currentWord >= state.words.length || !state.canType || earlySpace(state, event)) {
             return;
         }
+
+        Logger.log(`handleInput: "${inputRef.current.value}"`);
+        const inputValue = (event.target as HTMLInputElement).value;
+
         if (!state.typingStarted) {
-            dispatch({ 
-                type: TypingActions.TYPING_STARTED, // TODO: only trigger typing started if the character typed is a letter/number/symbol
+            dispatch({
+                type: TypingActions.TYPING_STARTED, 
                 payload: {
                     modeState: modeState,
                     dispatch: dispatch
                 }
-            }); 
+            });
         }
-        const inputValue = (event.target as HTMLInputElement).value;
 
         if (isDelete(event, inputValue)) {
-            handleDeletion(inputValue);
-            return; // should we return here?
+            handleDeletion(inputValue.trim()); // .trim() to fix safari bug not deleting space when going to previous word. see if any reason not to trim(). 
+            return; 
         }
 
-        dispatch({
-            type: TypingActions.CHARACTER_TYPED,
-            payload: {
-                inputValue: inputValue,
-                inputClass: getInputClass(state.words[state.currentWord], inputValue),
-            }
-        });
+        if(inputValue.length > 0) {
+            Logger.log("input triggered a state update");
+            dispatch({
+                type: TypingActions.CHARACTER_TYPED,
+                payload: {
+                    inputValue: inputValue,
+                }
+            });
+        }
 
         const characterTyped = inputValue[inputValue.length - 1];
-        if (shouldMoveToNextWord(inputValue, characterTyped)) {
+        if (shouldMoveToNextWord(inputValue, characterTyped) || endAfterLastCharacter(state, inputValue)) {
             handleWordComplete(inputValue.trim());
         }
     }
 
     return (
-        <div className="typing-container">
+        <div className="typing-container typefast-card">
             <article className="typing-display">
                 {
                     state.wordData
@@ -134,57 +164,62 @@ export const TypingArea = ({
                         : null
                 }
             </article>
-            <div className="input-row">
-                <input
-                    type="text"
-                    value={state.wordData[state.currentWord]?.typedCharArray.join('') || ""}
-                    className={state.inputClass}
-                    onChange={handleInput}
-                    ref={inputRef}
-                >
-                </input>
-                <button type="button" className="retry-button" onClick={resetStates}>retry</button>
-            </div>
+            <input
+                id="invisible-input"
+                type="text"
+                value={getInvisibleInputElementValue(state)} 
+                onChange={handleInput} 
+                // onInput={handleInput} 
+                ref={inputRef}
+                autoComplete='off'
+                autoCapitalize='off'
+                autoCorrect='off'
+                data-gramm='false'
+                data-gramm_editor='false'
+                data-enable-grammarly='false'
+                spellCheck='false'
+            >
+            </input>
         </div>
     );
 }
 
+const earlySpace = (state: ExerciseState, event: React.ChangeEvent): boolean => {
+    return (event.nativeEvent as InputEvent).data === " " && state.wordData[state.currentWord].typedCharArray.length === 0;
+}
+
+const getInvisibleInputElementValue = (state: ExerciseState): string => {
+    let returnValue;
+    if(state.wordData[state.currentWord]?.typedCharArray.length > 0) {
+        returnValue = state.wordData[state.currentWord]?.typedCharArray.join('') || "";
+    } else  {
+        returnValue = " ";
+    }
+    Logger.log(`getInvisibleInputElementValue: "${returnValue}"`);
+    return returnValue;
+}
+
+const endAfterLastCharacter = (state: ExerciseState, inputValue: string): boolean => {
+    return state.currentWord + 1 === state.words.length && inputValue.trim() === state.words[state.currentWord];
+}
 
 const checkEndOfExercise = (exerciseState: ExerciseState, modeState: ModeState): boolean => {
-    if (modeState.mode === TypingModes.FIXED) {
+    if (modeState.mode === TypingModes.FIXED || modeState.mode === TypingModes.QUOTES || modeState.mode === TypingModes.PRACTICE) {
         return exerciseState.currentWord + 1 >= exerciseState.words.length;
     } else if (modeState.mode === TypingModes.TIMED) {
         return false;
     }
 }
 
-// TODO: add force correctness mode, but that would just affect the overall correctness, not whether you can move to the next word or not
 const shouldMoveToNextWord = (typedWord: string, keyPressed: string): boolean => {
     return typedWord && keyPressed === ' ';
 }
 
 
-/**
- * returns incremental correctness of the word as user is typing
- * TODO: use wordCharArray and typedCharArray instead of word and typed word
- */
-const wordIsCorrect = (targetWord: string, typedWord: string) => {
-    if (typedWord.length < targetWord.length) {
-        for (let i = 0; i < typedWord.length; i++) {
-            if (typedWord[i] !== targetWord[i]) {
-                return false;
-            }
-        }
-        return true;
-    }
-    return typedWord.trim() === targetWord;
-}
-
-const getInputClass = (word: string, typedWord: string): string => {
-    return wordIsCorrect(word, typedWord) ? "typing-input" : "typing-input incorrect-input";
-}
-
 export const getWordDataList = (selectedWords: string[]): WordData[] => {
+    if (!selectedWords) {
+        return [];
+    }
     const data: WordData[] = selectedWords.map((word: string, index: number) => {
         return {
             id: index,
@@ -192,9 +227,15 @@ export const getWordDataList = (selectedWords: string[]): WordData[] => {
             wordCharArray: word.split(''),
             typedCharArray: [],
             incorrectAttempts: [],
-            cssClass: ""
+            cssClass: "",
+            mistyped: false
         }
     });
     data[0] = { ...data[0], cssClass: "highlighted" };
     return data;
+}
+
+const isBackspace = (event: KeyboardEvent): boolean => {
+    Logger.log(event);
+    return event.key === 'Backspace' || event.key === 'delete';
 }
