@@ -65,6 +65,7 @@ export const Landing = (): React.ReactElement => {
                 incorrectCharacters: 0,
                 startTime: null,
                 endTime: null,
+                partialReattemptStartTime: null,
                 canType: true,
                 wpm: null,
                 accuracy: null,
