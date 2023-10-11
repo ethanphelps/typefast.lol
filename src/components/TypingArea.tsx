@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useRef } from 'react';
 import { TypingModes } from '../models/models';
 import WordComponent from './Word';
 import { ModeState } from '../reducers/mode-reducer';
@@ -6,6 +6,7 @@ import { ExerciseDispatchInput, ExerciseState, ExerciseStatus, TypingActions, Wo
 import * as Logger from "../utils/logger";
 
 const deleteInputTypes = ['deleteContentBackward', 'deleteWordBackward', 'deleteSoftLineBackward', 'deleteHardLineBackward'];
+export const ROW_SPAN = 3;
 
 
 
@@ -21,10 +22,27 @@ export const TypingArea = ({
     modeState,
 }: TypingAreaProps): React.ReactElement => {
     const inputRef = useRef<HTMLInputElement>(null);
+    const typingDisplay = useRef(null);
 
     useEffect(() => {
         inputRef.current.focus();
     }, [])
+
+    /**
+     * From docs: 
+     * [useLayoutEffect] is identical to `useEffect`, but it fires synchronously after all DOM mutations.
+     * Use this to read layout from the DOM and synchronously re-render. Updates scheduled inside
+     * `useLayoutEffect` will be flushed synchronously, before the browser has a chance to paint.
+     */
+    useLayoutEffect(() => {
+        Logger.debug('INSIDE USE LAYOUT EFFECT');
+        dispatch({
+            type: TypingActions.SET_LINE_BREAKS,
+            payload: {
+                typingDisplayRef: typingDisplay
+            }
+        })
+    }, [modeState, state.wordData])
 
 
     Logger.log(`currentWord: ${state.currentWord}`);
@@ -86,6 +104,7 @@ export const TypingArea = ({
             type: TypingActions.CHARACTER_DELETED,
             payload: {
                 inputValue: inputValue,
+                typingDisplayRef: typingDisplay
             }
         });
     }
@@ -144,6 +163,7 @@ export const TypingArea = ({
                 type: TypingActions.CHARACTER_TYPED,
                 payload: {
                     inputValue: inputValue,
+                    typingDisplayRef: typingDisplay
                 }
             });
         }
@@ -154,23 +174,32 @@ export const TypingArea = ({
         }
     }
 
+
     return (
         <div className="typing-container typefast-card">
-            <article className="typing-display">
+
+            <article className="typing-display" ref={typingDisplay}>
                 {
                     state.wordData
-                        ? state.wordData.map((data: WordData, index: number) => {
+                        // ? state.wordData.slice(
+                        //         state.rowStartIndices[state.rowOffset], 
+                        //         state.rowStartIndices[state.rowOffset + ROW_SPAN]
+                        // )
+                        ? state.wordData
+                            .map((data: WordData, index: number) => {
                             return <WordComponent
                                 word={data.wordCharArray}
                                 typedWord={data.typedCharArray}
                                 wordIndex={data.id}
                                 currentWord={state.currentWord}
+                                renderClass={state.wordRenderMap[index]}
                                 key={data.id}
                             />
                         })
                         : null
                 }
             </article>
+
             <input
                 id="invisible-input"
                 type="text"

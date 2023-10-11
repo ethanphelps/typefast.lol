@@ -3,6 +3,7 @@
 import { ObjectValues, TypingMode, TypingModes } from "../models/models";
 import { ModeState } from "./mode-reducer";
 import * as Logger from "../utils/logger";
+import { ROW_SPAN } from "../components/TypingArea";
 
 export interface WordData {
     id: number;
@@ -26,7 +27,9 @@ export const TypingActions = {
     PREVIOUS_WORD: 'previous-word',
     CHARACTER_TYPED: 'character-typed',
     CHARACTER_DELETED: 'character-deleted', 
-    EXERCISE_COMPLETE: 'exercise-complete'
+    EXERCISE_COMPLETE: 'exercise-complete',
+    SET_LINE_BREAKS: 'set-line-breaks'
+
 } as const;
 type TypingAction = ObjectValues<typeof TypingActions>;
 // this may cause issues polluting state with non state fields in the reducer
@@ -36,6 +39,7 @@ interface ActionPayload {
     mode: TypingMode;
     modeState: ModeState;
     dispatch: React.Dispatch<React.ReducerAction<React.Reducer<ExerciseState, ExerciseDispatchInput>>>;
+    typingDisplayRef: React.MutableRefObject<HTMLElement>
 }
 export interface ExerciseDispatchInput {
     type: TypingAction;
@@ -66,6 +70,9 @@ export interface ExerciseState {
     accuracy: number;
     timeoutId?: NodeJS.Timeout;
     quoteCitation: string;
+    rowStartIndices: number[];
+    rowOffset: number;
+    wordRenderMap: Record<number, string>
 }
 
 /**
@@ -89,7 +96,7 @@ export const exerciseReducer = (state: ExerciseState, action: ExerciseDispatchIn
                 incorrectCharacters: 0,
                 startTime: null,
                 endTime: null,
-                canType: true
+                canType: true,
             }
 
         case (TypingActions.QUOTE_SET):
@@ -120,6 +127,7 @@ export const exerciseReducer = (state: ExerciseState, action: ExerciseDispatchIn
 
         // TODO: handle multiple characters being inserted at once into the input element (maybe? copy/paste shouldn't be expected functionality)
         case (TypingActions.CHARACTER_TYPED): {
+            console.debug("CHARACTER TYPED!!")
             const inputValue = action.payload.inputValue;
             const characterTyped = inputValue[inputValue.length - 1]; // this may need to change
             let newWordData;
@@ -135,7 +143,9 @@ export const exerciseReducer = (state: ExerciseState, action: ExerciseDispatchIn
             return {
                 ...state,
                 ...action.payload,
-                wordData: newWordData ? newWordData : state.wordData
+                wordData: newWordData ? newWordData : state.wordData,
+                rowStartIndices: findLineBreaks(action.payload.typingDisplayRef, state), // TODO: maybe remove
+                wordRenderMap: setAllWordsToRender(state.words)
             }
         }
 
@@ -159,6 +169,8 @@ export const exerciseReducer = (state: ExerciseState, action: ExerciseDispatchIn
                 ...action.payload,
                 wordData: newWordData,
                 partialReattemptStartTime: newSecondAttemptStartTime,
+                rowStartIndices: findLineBreaks(action.payload.typingDisplayRef, state), // TODO: maybe remove
+                wordRenderMap: setAllWordsToRender(state.words)
             }
         }
 
@@ -186,6 +198,9 @@ export const exerciseReducer = (state: ExerciseState, action: ExerciseDispatchIn
                 ...action.payload,
                 wordData: newWordData,
                 currentWord: state.currentWord + 1,
+                rowOffset: state.currentWord + 1 >= state.rowStartIndices[state.rowOffset + ROW_SPAN] 
+                    ? state.rowOffset + 1 
+                    : state.rowOffset
             }
         }
 
@@ -225,10 +240,51 @@ export const exerciseReducer = (state: ExerciseState, action: ExerciseDispatchIn
             }
         }
 
+        case (TypingActions.SET_LINE_BREAKS): {
+            Logger.debug('state.rowStartIndices[state.rowOffset]: ', state.rowStartIndices[state.rowOffset]);
+            Logger.debug('state.rowStartIndices[state.rowOffset + ROW_SPAN]: ', state.rowStartIndices[state.rowOffset + ROW_SPAN]);
+
+            let wordRenderMapWithHiddenWords: Record<number, string> = {}
+            for(let i = 0; i < state.words.length; i++) {
+                if(i >= state.rowStartIndices[state.rowOffset] && i <= state.rowStartIndices[state.rowOffset + ROW_SPAN]) {
+                    wordRenderMapWithHiddenWords[i] = "";
+                } else {
+                    wordRenderMapWithHiddenWords = "hidden";
+                }
+            }
+            return {
+                ...state,
+                ...action.payload,
+                rowStartIndices: findLineBreaks(action.payload.typingDisplayRef, state)
+            }
+        }
+
         default:
             return state;
     }
 }
+
+
+const findLineBreaks = (typingDisplay: React.MutableRefObject<HTMLElement>, state: ExerciseState): number[] => {
+    const children = typingDisplay.current.children as HTMLCollection;
+    const rowStartIndices: number[] = [0];
+    if(children.length > 0) {
+        let rowHeight = children[0].getBoundingClientRect().top;
+        for(let i = 0; i < children.length; i++) {
+            const child = children[i];
+            if(child.getBoundingClientRect().top !== rowHeight) {
+                rowStartIndices.push(i);
+                rowHeight = child.getBoundingClientRect().top;
+            }
+        }
+    }
+    Logger.log('Row start indices: ', rowStartIndices);
+    const firstWordsOnEachRow = rowStartIndices.map(i => state.words[i]);
+    Logger.log('First words on each row: ', firstWordsOnEachRow);
+    return rowStartIndices;
+}
+
+
 
 
 const getNewAttempts = (state: ExerciseState): string[][] => {
@@ -421,4 +477,12 @@ const calculatePerWordWpm = (words: WordData[]): WordData[] => {
             wpm: wpm
         }
     })
+}
+
+export const setAllWordsToRender = (words: string[]): Record<number, string> => {
+    const renderMap: Record<number, string> = {};
+    words.forEach((word: string, index: number) => {
+        renderMap[index] = "";
+    })
+    return renderMap;
 }
