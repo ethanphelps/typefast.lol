@@ -9,13 +9,13 @@ export interface WordData {
     id: number;
     word: string;
     wordCharArray: string[];
-    typedCharArray: string[]; 
+    typedCharArray: string[];
     attempts: string[][];
     cssClass: string;
     mistyped: boolean;
     startTime: number | null;
     endTime: number | null;
-    wpm: number | null; 
+    wpm: number | null;
 }
 
 export const TypingActions = {
@@ -26,9 +26,12 @@ export const TypingActions = {
     WORD_COMPLETE: 'word-complete',
     PREVIOUS_WORD: 'previous-word',
     CHARACTER_TYPED: 'character-typed',
-    CHARACTER_DELETED: 'character-deleted', 
+    CHARACTER_DELETED: 'character-deleted',
     EXERCISE_COMPLETE: 'exercise-complete',
-    SET_LINE_BREAKS: 'set-line-breaks'
+    SET_WORD_LAYOUT: 'set-line-breaks',
+    RENDER_ALL_WORDS: 'render-all-words',
+    OBSERVER_REGISTERED: 'observer-registered',
+    LAYOUT_SHIFT_COMPLETED: 'layout-shift-completed'
 
 } as const;
 type TypingAction = ObjectValues<typeof TypingActions>;
@@ -73,6 +76,8 @@ export interface ExerciseState {
     rowStartIndices: number[];
     rowOffset: number;
     wordRenderMap: Record<number, string>
+    observeResize: boolean,
+    layoutShiftCount: number
 }
 
 /**
@@ -157,7 +162,7 @@ export const exerciseReducer = (state: ExerciseState, action: ExerciseDispatchIn
             Logger.debug('deleted chars: ', `"${deletedChars}"`);
             const length = state.wordData[state.currentWord].typedCharArray.length;
             newWordData[state.currentWord].typedCharArray = state.wordData[state.currentWord].typedCharArray.slice(0, length - numCharsDeleted);
-            if(newWordData[state.currentWord].typedCharArray.length === 0) {
+            if (newWordData[state.currentWord].typedCharArray.length === 0) {
                 Logger.debug('wpm times reset!');
                 newWordData[state.currentWord].startTime = null;
                 newWordData[state.currentWord].endTime = null;
@@ -174,6 +179,9 @@ export const exerciseReducer = (state: ExerciseState, action: ExerciseDispatchIn
             }
         }
 
+        /**
+         * If time to scroll, rowOffset is incremented and wordRenderMap is recalculated to show the new words
+         */
         case (TypingActions.WORD_COMPLETE): {
             const correct = action.payload.inputValue === state.words[state.currentWord];
             const newWordData = [...state.wordData];
@@ -193,14 +201,20 @@ export const exerciseReducer = (state: ExerciseState, action: ExerciseDispatchIn
                 endTime: isPartialReattempt(state.wordData[state.currentWord]) ? getPartialReattemptEndTime(state) : Date.now(),
                 attempts: getNewAttempts(state)
             }
-            return {
+
+            const updatedState = {
                 ...state,
                 ...action.payload,
                 wordData: newWordData,
                 currentWord: state.currentWord + 1,
-                rowOffset: state.currentWord + 1 >= state.rowStartIndices[state.rowOffset + ROW_SPAN] 
-                    ? state.rowOffset + 1 
+                rowOffset: state.currentWord + 1 >= state.rowStartIndices[state.rowOffset + ROW_SPAN]
+                    ? state.rowOffset + 1
                     : state.rowOffset
+            };
+
+            return {
+                ...updatedState,
+                wordRenderMap: computeWordRenderMap(state.rowStartIndices, updatedState)
             }
         }
 
@@ -240,27 +254,39 @@ export const exerciseReducer = (state: ExerciseState, action: ExerciseDispatchIn
             }
         }
 
-        case (TypingActions.SET_LINE_BREAKS): {
+        case (TypingActions.SET_WORD_LAYOUT): {
             Logger.debug('state.rowStartIndices[state.rowOffset]: ', state.rowStartIndices[state.rowOffset]);
             Logger.debug('state.rowStartIndices[state.rowOffset + ROW_SPAN]: ', state.rowStartIndices[state.rowOffset + ROW_SPAN]);
             Logger.debug(`Word count: ${state.words.length}. state.rowStartIndices: ${JSON.stringify(state.rowStartIndices)}`);
             Logger.debug(`rowOffset: ${state.rowOffset}`);
-            let wordRenderMapWithHiddenWords: Record<number, string> = {}
-            // should findLineBreaks be called before the wordRenderMap is updated???
-            const newRowStartIndices = findLineBreaks(action.payload.typingDisplayRef, state);
-            for(let i = 0; i < state.words.length; i++) {
-                if(i >= newRowStartIndices[state.rowOffset] && i < newRowStartIndices[state.rowOffset + ROW_SPAN] || newRowStartIndices.length < ROW_SPAN + 1) {
-                    wordRenderMapWithHiddenWords[i] = "";
-                } else {
-                    // Logger.debug(`Word ${i} is hidden!`);
-                    wordRenderMapWithHiddenWords[i] = "hidden";
-                }
-            }
+
             return {
                 ...state,
-                ...action.payload,
-                rowStartIndices: newRowStartIndices,
-                wordRenderMap: wordRenderMapWithHiddenWords
+                rowStartIndices: action.payload.rowStartIndices,
+                wordRenderMap: action.payload.wordRenderMap
+            }
+        }
+
+        case (TypingActions.RENDER_ALL_WORDS): {
+            return {
+                ...state,
+                wordRenderMap: setAllWordsToRender(state.words),
+                observeResize: false, // don't want to trigger infinite resize -> render all words loop
+                layoutShiftCount: state.layoutShiftCount + 1
+            }
+        }
+
+        case (TypingActions.OBSERVER_REGISTERED): {
+            return {
+                ...state,
+                observeResize: true
+            }
+        }
+
+        case (TypingActions.LAYOUT_SHIFT_COMPLETED): {
+            return {
+                ...state,
+                observeResize: true
             }
         }
 
@@ -270,14 +296,27 @@ export const exerciseReducer = (state: ExerciseState, action: ExerciseDispatchIn
 }
 
 
-const findLineBreaks = (typingDisplay: React.MutableRefObject<HTMLElement>, state: ExerciseState): number[] => {
+export const computeWordRenderMap = (rowStartIndices: number[], state: ExerciseState): Record<number, string> => {
+    let wordRenderMapWithHiddenWords: Record<number, string> = {}
+    for (let i = 0; i < state.words.length; i++) {
+        if (i >= rowStartIndices[state.rowOffset] && i < rowStartIndices[state.rowOffset + ROW_SPAN] || rowStartIndices.length < ROW_SPAN + 1) {
+            wordRenderMapWithHiddenWords[i] = "";
+        } else {
+            wordRenderMapWithHiddenWords[i] = "hidden";
+        }
+    }
+    return wordRenderMapWithHiddenWords;
+}
+
+
+export const computeRowStartIndices = (typingDisplay: React.MutableRefObject<HTMLElement>, state: ExerciseState): number[] => {
     const children = typingDisplay.current.children as HTMLCollection;
     const rowStartIndices: number[] = [0];
-    if(children.length > 0) {
+    if (children.length > 0) {
         let rowHeight = children[0].getBoundingClientRect().top;
-        for(let i = 0; i < children.length; i++) {
+        for (let i = 0; i < children.length; i++) {
             const child = children[i];
-            if(child.getBoundingClientRect().top !== rowHeight) {
+            if (child.getBoundingClientRect().top !== rowHeight) {
                 rowStartIndices.push(i);
                 rowHeight = child.getBoundingClientRect().top;
             }
@@ -288,8 +327,6 @@ const findLineBreaks = (typingDisplay: React.MutableRefObject<HTMLElement>, stat
     Logger.log('First words on each row: ', firstWordsOnEachRow);
     return rowStartIndices;
 }
-
-
 
 
 const getNewAttempts = (state: ExerciseState): string[][] => {
@@ -375,7 +412,7 @@ const wordTypedCorrectly = (word: string[], typedWord: string[]): boolean => {
     if (word.length !== typedWord.length) {
         return false;
     }
-    for(let i = 0; i < word.length; i++) {
+    for (let i = 0; i < word.length; i++) {
         if (word[i] !== typedWord[i]) {
             return false;
         }
@@ -438,7 +475,7 @@ const calculateNaiveAccuracy = (totalCharacters: number, correctCharacters: numb
 
 const fillWithSpaces = (state: ExerciseState): string[] => {
     let updatedTypedCharArray = [...state.wordData[state.currentWord].typedCharArray];
-    if (typedWord(state).length < state.wordData[state.currentWord].word.length) { 
+    if (typedWord(state).length < state.wordData[state.currentWord].word.length) {
         let spaces = state.wordData[state.currentWord].wordCharArray
             .slice(typedWord(state).length - state.wordData[state.currentWord].word.length)
             .map((char: string) => ' ');
@@ -449,11 +486,11 @@ const fillWithSpaces = (state: ExerciseState): string[] => {
 
 const getCorrectCharactersInWord = (word: string[], typedWord: string[]): number => {
     let correct = 0;
-    for(let i = 0; i < typedWord.length; i++) {
-        if(i >= word.length) {
+    for (let i = 0; i < typedWord.length; i++) {
+        if (i >= word.length) {
             break;
         }
-        if(typedWord[i] === word[i]) {
+        if (typedWord[i] === word[i]) {
             correct++;
         }
     }
@@ -463,7 +500,7 @@ const getCorrectCharactersInWord = (word: string[], typedWord: string[]): number
 const calculatePerWordWpm = (words: WordData[]): WordData[] => {
     return words.map((word: WordData): WordData => {
         let wpm = null;
-        if(word.startTime && word.endTime) {
+        if (word.startTime && word.endTime) {
             const time = word.endTime - word.startTime;
             if (time < 0) {
                 Logger.error("Per-Word wpm calculation error: negative time!");

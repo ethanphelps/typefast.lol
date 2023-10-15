@@ -2,7 +2,7 @@ import React, { useEffect, useLayoutEffect, useRef } from 'react';
 import { TypingModes } from '../models/models';
 import WordComponent from './Word';
 import { ModeState } from '../reducers/mode-reducer';
-import { ExerciseDispatchInput, ExerciseState, ExerciseStatus, TypingActions, WordData, typedWord } from '../reducers/exercise-reducer';
+import { ExerciseDispatchInput, ExerciseState, ExerciseStatus, TypingActions, WordData, computeRowStartIndices, computeWordRenderMap, typedWord } from '../reducers/exercise-reducer';
 import * as Logger from "../utils/logger";
 
 const deleteInputTypes = ['deleteContentBackward', 'deleteWordBackward', 'deleteSoftLineBackward', 'deleteHardLineBackward'];
@@ -24,22 +24,42 @@ export const TypingArea = ({
     const inputRef = useRef<HTMLInputElement>(null);
     const typingDisplay = useRef<HTMLDivElement>(null);
 
+    /**
+     * Executes before first paint, but after DOM has computed layout for all words:
+     * Compute row starts
+     * Compute word render map
+     * Dispatch SET_WORD_LAYOUT with updated values
+     * 
+     * Should be retriggered every time a layout shift happens. 
+     */
+    useLayoutEffect(() => {
+        const newRowStartIndices = computeRowStartIndices(typingDisplay, state);
+        Logger.debug("USE LAYOUT EFFECT. NEW ROW START INDICES: ", newRowStartIndices);
+        dispatch({
+            type: TypingActions.SET_WORD_LAYOUT,
+            payload: {
+                rowStartIndices: newRowStartIndices,
+                wordRenderMap: computeWordRenderMap(newRowStartIndices, state)
+            }
+        })
+    }, [state.layoutShiftCount, modeState])
+
+    /**
+     * Focus invisible input and register ResizeObserver for detecting layout shifts after first render
+     */
     useEffect(() => {
         inputRef.current.focus();
-
         console.debug('Initial typing display size: ', typingDisplay.current.getBoundingClientRect());
         const typingAreaResizeObserver = new ResizeObserver((entries: ResizeObserverEntry[]) => {
+            Logger.debug("RESIZE");
             for (const entry of entries) {
-                if(entry.contentBoxSize) {
-
-                    console.debug(`Typing display contentBox resized: `,entry.contentBoxSize[0] )
+                Logger.debug("RESIZE entry: ", entry);
+                if (entry.contentBoxSize && state.observeResize) {
+                    console.debug(`Typing display contentBox resized: `, entry.contentBoxSize[0])
+                    console.debug(`Rendering all words to compute new word layout!`);
                     dispatch({
-                        type: TypingActions.SET_LINE_BREAKS,
-                        payload: {
-                            typingDisplayRef: typingDisplay
-                        }
+                        type: TypingActions.RENDER_ALL_WORDS,
                     })
-
                 }
             }
         })
@@ -50,59 +70,35 @@ export const TypingArea = ({
         }
     }, [])
 
-    /**
-     * Executes before first paint, but after DOM has computed layout for all words:
-     * Compute row starts
-     * Compute word render map
-     * Dispatch SET_LINE_BREAKS and SET_RENDERED_WORDS
-     */
-    useLayoutEffect(() => {
-    }, [])
-
-    /**
-     * From docs: 
-     * [useLayoutEffect] is identical to `useEffect`, but it fires synchronously after all DOM mutations.
-     * Use this to read layout from the DOM and synchronously re-render. Updates scheduled inside
-     * `useLayoutEffect` will be flushed synchronously, before the browser has a chance to paint.
-     */
-    // useLayoutEffect(() => {
-    //     Logger.debug('INSIDE USE LAYOUT EFFECT');
-    //     dispatch({
-    //         type: TypingActions.SET_LINE_BREAKS,
-    //         payload: {
-    //             typingDisplayRef: typingDisplay
-    //         }
-    //     })
-    // }, [modeState, state.wordData])
-
-
-    // Logger.log(`currentWord: ${state.currentWord}`);
-    // Logger.log(`typedWord.length: `, state.wordData[state.currentWord]);
-
+    useEffect(() => {
+        dispatch({
+            type: TypingActions.LAYOUT_SHIFT_COMPLETED
+        })
+    }, [state.rowStartIndices])
 
     /**
      * critical logic for making backspace to previous words work!
      */
     useEffect(() => {
-
         /**
          * check if exercise in progress
          * if key === backspace and input element's value is empty, then dispatch PREVIOUS_WORD
          * 
          * MOVING PREVIOUS_WORD DISPATCH HERE FROM HANDLEBEFOREINPUT FIXED SAFARI FORCE RELOAD BUG!!!
          * TODO: maybe combine CHARACTER_DELETED and PREVIOUS_WORD into one reducer action
+         * TODO: re-evaluate if this event listener really needs to be reassigned on every state update??
          */
         const handleKeyDown = (event: KeyboardEvent): void => {
             Logger.log('keydown');
-            if(state.status === ExerciseStatus.IN_PROGRESS || state.status === ExerciseStatus.READY) {
+            if (state.status === ExerciseStatus.IN_PROGRESS || state.status === ExerciseStatus.READY) {
                 inputRef.current.focus();
             }
 
-            if(
-                state.status === ExerciseStatus.IN_PROGRESS && 
-                state.currentWord > 0 && 
-                state.currentWord < state.words.length && 
-                isBackspace(event) && 
+            if (
+                state.status === ExerciseStatus.IN_PROGRESS &&
+                state.currentWord > 0 &&
+                state.currentWord < state.words.length &&
+                isBackspace(event) &&
                 state.wordData[state.currentWord].typedCharArray.length == 0
             ) {
                 Logger.log("PREVIOUS_WORD");
@@ -163,12 +159,14 @@ export const TypingArea = ({
             return;
         }
 
+        Logger.log('STATE:', state);
+
         Logger.log(`handleInput: "${inputRef.current.value}"`);
         const inputValue = (event.target as HTMLInputElement).value;
 
         if (!state.typingStarted) {
             dispatch({
-                type: TypingActions.TYPING_STARTED, 
+                type: TypingActions.TYPING_STARTED,
                 payload: {
                     modeState: modeState,
                     dispatch: dispatch
@@ -178,13 +176,13 @@ export const TypingArea = ({
 
         if (isDelete(event, inputValue)) {
             handleDeletion(inputValue.trim()); // .trim() to fix safari bug not deleting space when going to previous word. see if any reason not to trim(). 
-            return; 
+            return;
         }
 
-        if(inputValue.length > 0) {
+        if (inputValue.length > 0) {
             Logger.log("input triggered a state update");
 
-            if(!wordStarted(state)) {
+            if (!wordStarted(state)) {
                 dispatch({
                     type: TypingActions.WORD_STARTED
                 })
@@ -218,15 +216,15 @@ export const TypingArea = ({
                         // )
                         ? state.wordData
                             .map((data: WordData, index: number) => {
-                            return <WordComponent
-                                word={data.wordCharArray}
-                                typedWord={data.typedCharArray}
-                                wordIndex={data.id}
-                                currentWord={state.currentWord}
-                                renderClass={state.wordRenderMap[index]}
-                                key={data.id}
-                            />
-                        })
+                                return <WordComponent
+                                    word={data.wordCharArray}
+                                    typedWord={data.typedCharArray}
+                                    wordIndex={data.id}
+                                    currentWord={state.currentWord}
+                                    renderClass={state.wordRenderMap[index]}
+                                    key={data.id}
+                                />
+                            })
                         : null
                 }
             </article>
@@ -234,8 +232,8 @@ export const TypingArea = ({
             <input
                 id="invisible-input"
                 type="text"
-                value={getInvisibleInputElementValue(state)} 
-                onChange={handleInput} 
+                value={getInvisibleInputElementValue(state)}
+                onChange={handleInput}
                 // onInput={handleInput} 
                 ref={inputRef}
                 autoComplete='off'
@@ -257,9 +255,9 @@ const earlySpace = (state: ExerciseState, event: React.ChangeEvent): boolean => 
 
 const getInvisibleInputElementValue = (state: ExerciseState): string => {
     let returnValue;
-    if(state.wordData[state.currentWord]?.typedCharArray.length > 0) {
+    if (state.wordData[state.currentWord]?.typedCharArray.length > 0) {
         returnValue = state.wordData[state.currentWord]?.typedCharArray.join('') || "";
-    } else  {
+    } else {
         returnValue = " ";
     }
     Logger.log(`getInvisibleInputElementValue: "${returnValue}"`);

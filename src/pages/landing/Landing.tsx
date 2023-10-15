@@ -72,7 +72,9 @@ export const Landing = (): React.ReactElement => {
                 quoteCitation: "",
                 rowStartIndices: [0],
                 rowOffset: 0,
-                wordRenderMap: setAllWordsToRender(words)
+                wordRenderMap: setAllWordsToRender(words),
+                observeResize: false,
+                layoutShiftCount: 0
             }
         }
     )
