@@ -16,7 +16,7 @@ const PRACTICE_WORD_REPEAT_COUNT = 8;
 const Header = ({ }): React.ReactElement => {
     return (
         <header className="header-container">
-            {/* <div id="logo">typefast.lol</div> */}
+            <div id="logo">typefast.lol</div>
         </header>
     );
 };
@@ -74,7 +74,8 @@ export const Landing = (): React.ReactElement => {
                 rowOffset: 0,
                 wordRenderMap: setAllWordsToRender(words),
                 observeResize: false,
-                layoutShiftCount: 0
+                layoutShiftCount: 0,
+                recalculateRows: true
             }
         }
     )

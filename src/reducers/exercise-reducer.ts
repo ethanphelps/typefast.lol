@@ -31,7 +31,9 @@ export const TypingActions = {
     SET_WORD_LAYOUT: 'set-line-breaks',
     RENDER_ALL_WORDS: 'render-all-words',
     OBSERVER_REGISTERED: 'observer-registered',
-    LAYOUT_SHIFT_COMPLETED: 'layout-shift-completed'
+    LAYOUT_SHIFT: 'layout-shift',
+    LAYOUT_SHIFT_COMPLETED: 'layout-shift-completed',
+    SCROLL: 'scroll'
 
 } as const;
 type TypingAction = ObjectValues<typeof TypingActions>;
@@ -77,7 +79,8 @@ export interface ExerciseState {
     rowOffset: number;
     wordRenderMap: Record<number, string>
     observeResize: boolean,
-    layoutShiftCount: number
+    layoutShiftCount: number,
+    recalculateRows: boolean
 }
 
 /**
@@ -102,6 +105,8 @@ export const exerciseReducer = (state: ExerciseState, action: ExerciseDispatchIn
                 startTime: null,
                 endTime: null,
                 canType: true,
+                rowOffset: 0,
+                recalculateRows: true
             }
 
         case (TypingActions.QUOTE_SET):
@@ -207,14 +212,22 @@ export const exerciseReducer = (state: ExerciseState, action: ExerciseDispatchIn
                 ...action.payload,
                 wordData: newWordData,
                 currentWord: state.currentWord + 1,
-                rowOffset: state.currentWord + 1 >= state.rowStartIndices[state.rowOffset + ROW_SPAN]
-                    ? state.rowOffset + 1
-                    : state.rowOffset
+                // rowOffset: state.currentWord + 1 >= state.rowStartIndices[state.rowOffset + ROW_SPAN - 1]
+                //     ? state.rowOffset + 1
+                //     : state.rowOffset
             };
 
             return {
                 ...updatedState,
-                wordRenderMap: computeWordRenderMap(state.rowStartIndices, updatedState)
+                wordRenderMap: computeWordRenderMap(state.rowStartIndices, 0, [])
+            }
+        }
+
+        case (TypingActions.SCROLL): {
+            Logger.log("SCROLL");
+            return {
+                ...state,
+                rowOffset: state.rowOffset + 1
             }
         }
 
@@ -283,10 +296,18 @@ export const exerciseReducer = (state: ExerciseState, action: ExerciseDispatchIn
             }
         }
 
+        case (TypingActions.LAYOUT_SHIFT): {
+            return {
+                ...state,
+                recalculateRows: true
+            }
+        }
+
         case (TypingActions.LAYOUT_SHIFT_COMPLETED): {
             return {
                 ...state,
-                observeResize: true
+                observeResize: true,
+                recalculateRows: false
             }
         }
 
@@ -296,10 +317,14 @@ export const exerciseReducer = (state: ExerciseState, action: ExerciseDispatchIn
 }
 
 
-export const computeWordRenderMap = (rowStartIndices: number[], state: ExerciseState): Record<number, string> => {
+export const computeWordRenderMap = (rowStartIndices: number[], rowOffset: number, words: string[]): Record<number, string> => {
     let wordRenderMapWithHiddenWords: Record<number, string> = {}
-    for (let i = 0; i < state.words.length; i++) {
-        if (i >= rowStartIndices[state.rowOffset] && i < rowStartIndices[state.rowOffset + ROW_SPAN] || rowStartIndices.length < ROW_SPAN + 1) {
+    for (let i = 0; i < words.length; i++) {
+        if (
+            (i >= rowStartIndices[rowOffset] && rowStartIndices.length <= rowOffset + ROW_SPAN) ||
+            (i >= rowStartIndices[rowOffset] && i < rowStartIndices[rowOffset + ROW_SPAN])
+            || rowStartIndices.length < ROW_SPAN + 1
+        ) {
             wordRenderMapWithHiddenWords[i] = "";
         } else {
             wordRenderMapWithHiddenWords[i] = "hidden";
@@ -310,6 +335,10 @@ export const computeWordRenderMap = (rowStartIndices: number[], state: ExerciseS
 
 
 export const computeRowStartIndices = (typingDisplay: React.MutableRefObject<HTMLElement>, state: ExerciseState): number[] => {
+    if(!typingDisplay) {
+        Logger.debug('TypingDisplay is NULL');
+        return [];
+    }
     const children = typingDisplay.current.children as HTMLCollection;
     const rowStartIndices: number[] = [0];
     if (children.length > 0) {
@@ -404,7 +433,7 @@ export const typedWord = (state: ExerciseState): string => {
 }
 
 const getDeletedCharacters = (inputValue: string, typedCharArray: string[]): number => {
-    Logger.log(`typedWordvalue: "${typedCharArray.join('')}", inputValue: "${inputValue}"`);
+    // Logger.log(`typedWordvalue: "${typedCharArray.join('')}", inputValue: "${inputValue}"`);
     return inputValue.length < typedCharArray.length ? typedCharArray.length - inputValue.length : 0;
 }
 

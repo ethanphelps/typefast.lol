@@ -155,6 +155,10 @@ body {
   // max-width: 100%;
 }
 
+#typing-display {
+  min-height: 76px; // TODO see if there's a better way of doing this
+}
+
 .hidden {
   display: none;
 }
