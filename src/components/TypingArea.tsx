@@ -27,7 +27,7 @@ export const TypingArea = ({
     const typingDisplay = useRef<HTMLDivElement>(null);
 
     const [rowOffset, setRowOffset] = useState<number>(0);
-    const [rowStartIndices, setRowStartIndices] = useState<number[]>(null)
+    const [rowStartIndices, setRowStartIndices] = useState<number[]>(null);
 
     if(state.status === ExerciseStatus.READY && rowOffset > 0) {
         setRowOffset(0);
@@ -37,14 +37,17 @@ export const TypingArea = ({
      * Executes before first paint, but after DOM has computed layout for all words:
      * Compute row starts
      * Compute word render map
-     * Dispatch SET_WORD_LAYOUT with updated values
      * 
      * Should be retriggered every time a layout shift happens. 
      */
     useLayoutEffect(() => {
         const currentHeight = typingDisplay.current?.clientHeight;
-        if(!state.recalculateRows && Math.floor(currentHeight) > Math.floor(TYPING_AREA_MIN_HEIGHT) + BUFFER) {
-            Logger.log(`Layout shift has occurred! current height: ${currentHeight}, desired height: ${TYPING_AREA_MIN_HEIGHT}`);
+        if(
+            !state.recalculateRows && 
+            Math.floor(currentHeight) > Math.floor(TYPING_AREA_MIN_HEIGHT) + BUFFER && 
+            (state.status === ExerciseStatus.READY || state.status === ExerciseStatus.IN_PROGRESS)
+        ) {
+            Logger.debug(`Layout shift has occurred! current height: ${currentHeight}, desired height: ${TYPING_AREA_MIN_HEIGHT}`);
             dispatch({ type: TypingActions.LAYOUT_SHIFT });
         }
         if(state.recalculateRows) {
@@ -53,7 +56,6 @@ export const TypingArea = ({
             Logger.debug("USE LAYOUT EFFECT. OLD ROW START INDICES: ", rowStartIndices);
             if(layoutChanged(rowStartIndices, newRowStartIndices)) {
                 Logger.log('Layout CHANGED');
-                // setPrevRowStartIndices(rowStartIndices);
                 setRowStartIndices(newRowStartIndices);
             }
             dispatch({ type: TypingActions.LAYOUT_SHIFT_COMPLETED });
@@ -63,14 +65,17 @@ export const TypingArea = ({
 
     Logger.debug('typingDisplay during render: ', typingDisplay.current?.clientHeight);
     Logger.debug(`rowOffset: ${rowOffset}`);
-    // add function to check if rowOffset should be incremented based on state.currentWord
     if(!lastTwoRows(rowStartIndices, state.currentWord, rowOffset) && middleRowComplete(rowStartIndices, state.currentWord, rowOffset)) {
-        // dispatch({ type: TypingActions.SCROLL });
         setRowOffset(rowOffset + 1);
     }
 
     let wordRenderMap: Record<number, string> = null;
-    if(typingDisplay.current && rowStartIndices && !state.recalculateRows) {
+    if(
+        typingDisplay.current && 
+        rowStartIndices && 
+        !state.recalculateRows &&
+        (state.status === ExerciseStatus.READY || state.status === ExerciseStatus.IN_PROGRESS)
+    ) {
         wordRenderMap = computeWordRenderMap(rowStartIndices, rowOffset, state.words);
         // Logger.debug('word render map: ', wordRenderMap);
     } else {
@@ -84,32 +89,7 @@ export const TypingArea = ({
      */
     useEffect(() => {
         inputRef.current.focus();
-        // console.debug('Initial typing display size: ', typingDisplay.current.getBoundingClientRect());
-        // const typingAreaResizeObserver = new ResizeObserver((entries: ResizeObserverEntry[]) => {
-        //     Logger.debug("RESIZE");
-        //     for (const entry of entries) {
-        //         Logger.debug("RESIZE entry: ", entry);
-        //         if (entry.contentBoxSize && state.observeResize) {
-        //             console.debug(`Typing display contentBox resized: `, entry.contentBoxSize[0])
-        //             console.debug(`Rendering all words to compute new word layout!`);
-        //             dispatch({
-        //                 type: TypingActions.RENDER_ALL_WORDS,
-        //             })
-        //         }
-        //     }
-        // })
-        // typingAreaResizeObserver.observe(typingDisplay.current)
-        // return () => {
-        //     typingAreaResizeObserver.unobserve(typingDisplay.current);
-        //     typingAreaResizeObserver.disconnect();
-        // }
     }, [])
-
-    // useEffect(() => {
-    //     dispatch({
-    //         type: TypingActions.LAYOUT_SHIFT_COMPLETED
-    //     })
-    // }, [state.rowStartIndices])
 
     /**
      * critical logic for making backspace to previous words work!
@@ -121,22 +101,21 @@ export const TypingArea = ({
          * 
          * MOVING PREVIOUS_WORD DISPATCH HERE FROM HANDLEBEFOREINPUT FIXED SAFARI FORCE RELOAD BUG!!!
          * TODO: maybe combine CHARACTER_DELETED and PREVIOUS_WORD into one reducer action
-         * TODO: re-evaluate if this event listener really needs to be reassigned on every state update??
+         * TODO: re-evaluate if this event listener really needs to be reassigned on every state update?? - may need to be reassigned since state would be stale if only assigned once
+         * TODO: see if this can be extracted from useEffect and just run during render? may cause off-by-one issues
          */
         const handleKeyDown = (event: KeyboardEvent): void => {
-            // Logger.log('keydown');
             if (state.status === ExerciseStatus.IN_PROGRESS || state.status === ExerciseStatus.READY) {
                 inputRef.current.focus();
             }
 
             if (
                 state.status === ExerciseStatus.IN_PROGRESS &&
-                state.currentWord > 0 &&
+                state.currentWord > rowStartIndices[rowOffset] &&
                 state.currentWord < state.words.length &&
                 isBackspace(event) &&
                 state.wordData[state.currentWord].typedCharArray.length == 0
             ) {
-                // Logger.log("PREVIOUS_WORD");
                 dispatch({
                     type: TypingActions.PREVIOUS_WORD
                 });
@@ -160,6 +139,9 @@ export const TypingArea = ({
     const handleDeletion = (inputValue: string) => {
         if (typedWord(state).length === 0) {
             return; // TODO: figure out if this is still needed
+        }
+        if (deletingExtraCharacter(state)) {
+            dispatch({ type: TypingActions.LAYOUT_SHIFT });
         }
         dispatch({
             type: TypingActions.CHARACTER_DELETED,
@@ -193,9 +175,6 @@ export const TypingArea = ({
             return;
         }
 
-        // Logger.log('STATE:', state);
-
-        // Logger.log(`handleInput: "${inputRef.current.value}"`);
         const inputValue = (event.target as HTMLInputElement).value;
 
         if (!state.typingStarted) {
@@ -242,10 +221,6 @@ export const TypingArea = ({
             <article id="typing-display" ref={typingDisplay} style={{ minHeight: JSON.stringify(TYPING_AREA_MIN_HEIGHT)}}>
                 {
                     state.wordData
-                        // ? state.wordData.slice(
-                        //         state.rowStartIndices[state.rowOffset], 
-                        //         state.rowStartIndices[state.rowOffset + ROW_SPAN]
-                        // )
                         ? state.wordData
                             .map((data: WordData, index: number) => {
                                 return <WordComponent
@@ -266,7 +241,6 @@ export const TypingArea = ({
                 type="text"
                 value={getInvisibleInputElementValue(state)}
                 onChange={handleInput}
-                // onInput={handleInput} 
                 ref={inputRef}
                 autoComplete='off'
                 autoCapitalize='off'
@@ -279,6 +253,14 @@ export const TypingArea = ({
             </input>
         </div>
     );
+}
+
+/**
+ * Want to dispatch LAYOUT_SHIFT when deleting extra characters since this could cause previously displaced words to come
+ * back to the bottom visible row
+ */
+const deletingExtraCharacter = (state: ExerciseState): boolean => {
+    return state.wordData[state.currentWord].typedCharArray.length > state.wordData[state.currentWord].wordCharArray.length;
 }
 
 const middleRowComplete = (rowStartIndices: number[], currentWord: number, rowOffset: number): boolean => {
@@ -297,7 +279,6 @@ const lastTwoRows = (rowStartIndices: number[], currentWord: number, rowOffset: 
 }
 
 const layoutChanged = (oldIndices: number[], newIndices: number[]): boolean => {
-    // if(!oldIndices || !newIndices) {
     if(!oldIndices) {
         return true;
     }

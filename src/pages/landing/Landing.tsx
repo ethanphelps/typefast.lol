@@ -70,11 +70,6 @@ export const Landing = (): React.ReactElement => {
                 wpm: null,
                 accuracy: null,
                 quoteCitation: "",
-                rowStartIndices: [0],
-                rowOffset: 0,
-                wordRenderMap: setAllWordsToRender(words),
-                observeResize: false,
-                layoutShiftCount: 0,
                 recalculateRows: true
             }
         }

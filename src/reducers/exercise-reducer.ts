@@ -28,12 +28,8 @@ export const TypingActions = {
     CHARACTER_TYPED: 'character-typed',
     CHARACTER_DELETED: 'character-deleted',
     EXERCISE_COMPLETE: 'exercise-complete',
-    SET_WORD_LAYOUT: 'set-line-breaks',
-    RENDER_ALL_WORDS: 'render-all-words',
-    OBSERVER_REGISTERED: 'observer-registered',
     LAYOUT_SHIFT: 'layout-shift',
     LAYOUT_SHIFT_COMPLETED: 'layout-shift-completed',
-    SCROLL: 'scroll'
 
 } as const;
 type TypingAction = ObjectValues<typeof TypingActions>;
@@ -75,12 +71,7 @@ export interface ExerciseState {
     accuracy: number;
     timeoutId?: NodeJS.Timeout;
     quoteCitation: string;
-    rowStartIndices: number[];
-    rowOffset: number;
-    wordRenderMap: Record<number, string>
-    observeResize: boolean,
-    layoutShiftCount: number,
-    recalculateRows: boolean
+    recalculateRows: boolean;
 }
 
 /**
@@ -105,7 +96,6 @@ export const exerciseReducer = (state: ExerciseState, action: ExerciseDispatchIn
                 startTime: null,
                 endTime: null,
                 canType: true,
-                rowOffset: 0,
                 recalculateRows: true
             }
 
@@ -137,7 +127,6 @@ export const exerciseReducer = (state: ExerciseState, action: ExerciseDispatchIn
 
         // TODO: handle multiple characters being inserted at once into the input element (maybe? copy/paste shouldn't be expected functionality)
         case (TypingActions.CHARACTER_TYPED): {
-            console.debug("CHARACTER TYPED!!")
             const inputValue = action.payload.inputValue;
             const characterTyped = inputValue[inputValue.length - 1]; // this may need to change
             let newWordData;
@@ -184,9 +173,6 @@ export const exerciseReducer = (state: ExerciseState, action: ExerciseDispatchIn
             }
         }
 
-        /**
-         * If time to scroll, rowOffset is incremented and wordRenderMap is recalculated to show the new words
-         */
         case (TypingActions.WORD_COMPLETE): {
             const correct = action.payload.inputValue === state.words[state.currentWord];
             const newWordData = [...state.wordData];
@@ -207,28 +193,12 @@ export const exerciseReducer = (state: ExerciseState, action: ExerciseDispatchIn
                 attempts: getNewAttempts(state)
             }
 
-            const updatedState = {
+            return {
                 ...state,
                 ...action.payload,
                 wordData: newWordData,
                 currentWord: state.currentWord + 1,
-                // rowOffset: state.currentWord + 1 >= state.rowStartIndices[state.rowOffset + ROW_SPAN - 1]
-                //     ? state.rowOffset + 1
-                //     : state.rowOffset
             };
-
-            return {
-                ...updatedState,
-                wordRenderMap: computeWordRenderMap(state.rowStartIndices, 0, [])
-            }
-        }
-
-        case (TypingActions.SCROLL): {
-            Logger.log("SCROLL");
-            return {
-                ...state,
-                rowOffset: state.rowOffset + 1
-            }
         }
 
         case (TypingActions.PREVIOUS_WORD): {
@@ -267,35 +237,6 @@ export const exerciseReducer = (state: ExerciseState, action: ExerciseDispatchIn
             }
         }
 
-        case (TypingActions.SET_WORD_LAYOUT): {
-            Logger.debug('state.rowStartIndices[state.rowOffset]: ', state.rowStartIndices[state.rowOffset]);
-            Logger.debug('state.rowStartIndices[state.rowOffset + ROW_SPAN]: ', state.rowStartIndices[state.rowOffset + ROW_SPAN]);
-            Logger.debug(`Word count: ${state.words.length}. state.rowStartIndices: ${JSON.stringify(state.rowStartIndices)}`);
-            Logger.debug(`rowOffset: ${state.rowOffset}`);
-
-            return {
-                ...state,
-                rowStartIndices: action.payload.rowStartIndices,
-                wordRenderMap: action.payload.wordRenderMap
-            }
-        }
-
-        case (TypingActions.RENDER_ALL_WORDS): {
-            return {
-                ...state,
-                wordRenderMap: setAllWordsToRender(state.words),
-                observeResize: false, // don't want to trigger infinite resize -> render all words loop
-                layoutShiftCount: state.layoutShiftCount + 1
-            }
-        }
-
-        case (TypingActions.OBSERVER_REGISTERED): {
-            return {
-                ...state,
-                observeResize: true
-            }
-        }
-
         case (TypingActions.LAYOUT_SHIFT): {
             return {
                 ...state,
@@ -306,7 +247,6 @@ export const exerciseReducer = (state: ExerciseState, action: ExerciseDispatchIn
         case (TypingActions.LAYOUT_SHIFT_COMPLETED): {
             return {
                 ...state,
-                observeResize: true,
                 recalculateRows: false
             }
         }
@@ -539,7 +479,7 @@ const calculatePerWordWpm = (words: WordData[]): WordData[] => {
             const fractionOfMinute = seconds / 60;
             const wordsTyped = correctCharacters / 5;
             wpm = wordsTyped / fractionOfMinute;
-            console.debug(`wpm for ${word.word}: ${wpm}`);
+            Logger.debug(`wpm for ${word.word}: ${wpm}`);
         } else {
             Logger.error(`Cannot calculate WPM for ${word.word}. Start time: ${word.startTime}, end time: ${word.endTime}`);
         }
