@@ -22,10 +22,41 @@ export const TypingArea = ({
     modeState,
 }: TypingAreaProps): React.ReactElement => {
     const inputRef = useRef<HTMLInputElement>(null);
-    const typingDisplay = useRef(null);
+    const typingDisplay = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         inputRef.current.focus();
+
+        console.debug('Initial typing display size: ', typingDisplay.current.getBoundingClientRect());
+        const typingAreaResizeObserver = new ResizeObserver((entries: ResizeObserverEntry[]) => {
+            for (const entry of entries) {
+                if(entry.contentBoxSize) {
+
+                    console.debug(`Typing display contentBox resized: `,entry.contentBoxSize[0] )
+                    dispatch({
+                        type: TypingActions.SET_LINE_BREAKS,
+                        payload: {
+                            typingDisplayRef: typingDisplay
+                        }
+                    })
+
+                }
+            }
+        })
+        typingAreaResizeObserver.observe(typingDisplay.current)
+        return () => {
+            typingAreaResizeObserver.unobserve(typingDisplay.current);
+            typingAreaResizeObserver.disconnect();
+        }
+    }, [])
+
+    /**
+     * Executes before first paint, but after DOM has computed layout for all words:
+     * Compute row starts
+     * Compute word render map
+     * Dispatch SET_LINE_BREAKS and SET_RENDERED_WORDS
+     */
+    useLayoutEffect(() => {
     }, [])
 
     /**
@@ -34,19 +65,19 @@ export const TypingArea = ({
      * Use this to read layout from the DOM and synchronously re-render. Updates scheduled inside
      * `useLayoutEffect` will be flushed synchronously, before the browser has a chance to paint.
      */
-    useLayoutEffect(() => {
-        Logger.debug('INSIDE USE LAYOUT EFFECT');
-        dispatch({
-            type: TypingActions.SET_LINE_BREAKS,
-            payload: {
-                typingDisplayRef: typingDisplay
-            }
-        })
-    }, [modeState, state.wordData])
+    // useLayoutEffect(() => {
+    //     Logger.debug('INSIDE USE LAYOUT EFFECT');
+    //     dispatch({
+    //         type: TypingActions.SET_LINE_BREAKS,
+    //         payload: {
+    //             typingDisplayRef: typingDisplay
+    //         }
+    //     })
+    // }, [modeState, state.wordData])
 
 
-    Logger.log(`currentWord: ${state.currentWord}`);
-    Logger.log(`typedWord.length: `, state.wordData[state.currentWord]);
+    // Logger.log(`currentWord: ${state.currentWord}`);
+    // Logger.log(`typedWord.length: `, state.wordData[state.currentWord]);
 
 
     /**

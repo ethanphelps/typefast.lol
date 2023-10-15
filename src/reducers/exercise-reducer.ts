@@ -144,8 +144,8 @@ export const exerciseReducer = (state: ExerciseState, action: ExerciseDispatchIn
                 ...state,
                 ...action.payload,
                 wordData: newWordData ? newWordData : state.wordData,
-                rowStartIndices: findLineBreaks(action.payload.typingDisplayRef, state), // TODO: maybe remove
-                wordRenderMap: setAllWordsToRender(state.words)
+                // rowStartIndices: findLineBreaks(action.payload.typingDisplayRef, state), // TODO: maybe remove
+                // wordRenderMap: setAllWordsToRender(state.words)
             }
         }
 
@@ -169,8 +169,8 @@ export const exerciseReducer = (state: ExerciseState, action: ExerciseDispatchIn
                 ...action.payload,
                 wordData: newWordData,
                 partialReattemptStartTime: newSecondAttemptStartTime,
-                rowStartIndices: findLineBreaks(action.payload.typingDisplayRef, state), // TODO: maybe remove
-                wordRenderMap: setAllWordsToRender(state.words)
+                // rowStartIndices: findLineBreaks(action.payload.typingDisplayRef, state), // TODO: maybe remove
+                // wordRenderMap: setAllWordsToRender(state.words)
             }
         }
 
@@ -243,19 +243,24 @@ export const exerciseReducer = (state: ExerciseState, action: ExerciseDispatchIn
         case (TypingActions.SET_LINE_BREAKS): {
             Logger.debug('state.rowStartIndices[state.rowOffset]: ', state.rowStartIndices[state.rowOffset]);
             Logger.debug('state.rowStartIndices[state.rowOffset + ROW_SPAN]: ', state.rowStartIndices[state.rowOffset + ROW_SPAN]);
-
+            Logger.debug(`Word count: ${state.words.length}. state.rowStartIndices: ${JSON.stringify(state.rowStartIndices)}`);
+            Logger.debug(`rowOffset: ${state.rowOffset}`);
             let wordRenderMapWithHiddenWords: Record<number, string> = {}
+            // should findLineBreaks be called before the wordRenderMap is updated???
+            const newRowStartIndices = findLineBreaks(action.payload.typingDisplayRef, state);
             for(let i = 0; i < state.words.length; i++) {
-                if(i >= state.rowStartIndices[state.rowOffset] && i <= state.rowStartIndices[state.rowOffset + ROW_SPAN]) {
+                if(i >= newRowStartIndices[state.rowOffset] && i < newRowStartIndices[state.rowOffset + ROW_SPAN] || newRowStartIndices.length < ROW_SPAN + 1) {
                     wordRenderMapWithHiddenWords[i] = "";
                 } else {
-                    wordRenderMapWithHiddenWords = "hidden";
+                    // Logger.debug(`Word ${i} is hidden!`);
+                    wordRenderMapWithHiddenWords[i] = "hidden";
                 }
             }
             return {
                 ...state,
                 ...action.payload,
-                rowStartIndices: findLineBreaks(action.payload.typingDisplayRef, state)
+                rowStartIndices: newRowStartIndices,
+                wordRenderMap: wordRenderMapWithHiddenWords
             }
         }
 
