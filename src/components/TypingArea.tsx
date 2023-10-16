@@ -147,7 +147,6 @@ export const TypingArea = ({
             type: TypingActions.CHARACTER_DELETED,
             payload: {
                 inputValue: inputValue,
-                typingDisplayRef: typingDisplay
             }
         });
     }
@@ -203,7 +202,6 @@ export const TypingArea = ({
                 type: TypingActions.CHARACTER_TYPED,
                 payload: {
                     inputValue: inputValue,
-                    typingDisplayRef: typingDisplay
                 }
             });
         }

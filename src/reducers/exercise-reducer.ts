@@ -40,7 +40,6 @@ interface ActionPayload {
     mode: TypingMode;
     modeState: ModeState;
     dispatch: React.Dispatch<React.ReducerAction<React.Reducer<ExerciseState, ExerciseDispatchInput>>>;
-    typingDisplayRef: React.MutableRefObject<HTMLElement>
 }
 export interface ExerciseDispatchInput {
     type: TypingAction;
@@ -143,8 +142,6 @@ export const exerciseReducer = (state: ExerciseState, action: ExerciseDispatchIn
                 ...state,
                 ...action.payload,
                 wordData: newWordData ? newWordData : state.wordData,
-                // rowStartIndices: findLineBreaks(action.payload.typingDisplayRef, state), // TODO: maybe remove
-                // wordRenderMap: setAllWordsToRender(state.words)
             }
         }
 
@@ -162,14 +159,11 @@ export const exerciseReducer = (state: ExerciseState, action: ExerciseDispatchIn
                 newWordData[state.currentWord].endTime = null;
                 newSecondAttemptStartTime = null;
             }
-            // Logger.debug('new char array: ', newWordData[state.currentWord].typedCharArray);
             return {
                 ...state,
                 ...action.payload,
                 wordData: newWordData,
                 partialReattemptStartTime: newSecondAttemptStartTime,
-                // rowStartIndices: findLineBreaks(action.payload.typingDisplayRef, state), // TODO: maybe remove
-                // wordRenderMap: setAllWordsToRender(state.words)
             }
         }
 
