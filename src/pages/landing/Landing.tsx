@@ -3,7 +3,7 @@ import './landing.scss';
 import { TypingArea, getWordDataList } from '../../components/TypingArea';
 import { ModeMenu } from '../../components/ModeMenu';
 import { MODE_STATE, ModeActions, ModeState, initialModeState, modeOptionsReducer } from '../../reducers/mode-reducer';
-import { ExerciseState, ExerciseStatus, ExerciseStatusValue, MissedWords, TypingActions, exerciseReducer, getMistypedWords } from '../../reducers/exercise-reducer';
+import { ExerciseState, ExerciseStatus, ExerciseStatusValue, MissedWords, TypingActions, exerciseReducer, getMistypedWords, setAllWordsToRender } from '../../reducers/exercise-reducer';
 import Stats from '../../components/Stats';
 import SlowMissedWords from '../../components/SlowMissedWords';
 import { OptionCategories, TypingModes } from '../../models/models';
@@ -69,7 +69,8 @@ export const Landing = (): React.ReactElement => {
                 canType: true,
                 wpm: null,
                 accuracy: null,
-                quoteCitation: ""
+                quoteCitation: "",
+                recalculateRows: true
             }
         }
     )

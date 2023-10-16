@@ -3,18 +3,19 @@
 import { ObjectValues, TypingMode, TypingModes } from "../models/models";
 import { ModeState } from "./mode-reducer";
 import * as Logger from "../utils/logger";
+import { ROW_SPAN } from "../components/TypingArea";
 
 export interface WordData {
     id: number;
     word: string;
     wordCharArray: string[];
-    typedCharArray: string[]; 
+    typedCharArray: string[];
     attempts: string[][];
     cssClass: string;
     mistyped: boolean;
     startTime: number | null;
     endTime: number | null;
-    wpm: number | null; 
+    wpm: number | null;
 }
 
 export const TypingActions = {
@@ -25,8 +26,11 @@ export const TypingActions = {
     WORD_COMPLETE: 'word-complete',
     PREVIOUS_WORD: 'previous-word',
     CHARACTER_TYPED: 'character-typed',
-    CHARACTER_DELETED: 'character-deleted', 
-    EXERCISE_COMPLETE: 'exercise-complete'
+    CHARACTER_DELETED: 'character-deleted',
+    EXERCISE_COMPLETE: 'exercise-complete',
+    LAYOUT_SHIFT: 'layout-shift',
+    LAYOUT_SHIFT_COMPLETED: 'layout-shift-completed',
+
 } as const;
 type TypingAction = ObjectValues<typeof TypingActions>;
 // this may cause issues polluting state with non state fields in the reducer
@@ -66,6 +70,7 @@ export interface ExerciseState {
     accuracy: number;
     timeoutId?: NodeJS.Timeout;
     quoteCitation: string;
+    recalculateRows: boolean;
 }
 
 /**
@@ -89,7 +94,8 @@ export const exerciseReducer = (state: ExerciseState, action: ExerciseDispatchIn
                 incorrectCharacters: 0,
                 startTime: null,
                 endTime: null,
-                canType: true
+                canType: true,
+                recalculateRows: true
             }
 
         case (TypingActions.QUOTE_SET):
@@ -135,7 +141,7 @@ export const exerciseReducer = (state: ExerciseState, action: ExerciseDispatchIn
             return {
                 ...state,
                 ...action.payload,
-                wordData: newWordData ? newWordData : state.wordData
+                wordData: newWordData ? newWordData : state.wordData,
             }
         }
 
@@ -147,13 +153,12 @@ export const exerciseReducer = (state: ExerciseState, action: ExerciseDispatchIn
             Logger.debug('deleted chars: ', `"${deletedChars}"`);
             const length = state.wordData[state.currentWord].typedCharArray.length;
             newWordData[state.currentWord].typedCharArray = state.wordData[state.currentWord].typedCharArray.slice(0, length - numCharsDeleted);
-            if(newWordData[state.currentWord].typedCharArray.length === 0) {
+            if (newWordData[state.currentWord].typedCharArray.length === 0) {
                 Logger.debug('wpm times reset!');
                 newWordData[state.currentWord].startTime = null;
                 newWordData[state.currentWord].endTime = null;
                 newSecondAttemptStartTime = null;
             }
-            // Logger.debug('new char array: ', newWordData[state.currentWord].typedCharArray);
             return {
                 ...state,
                 ...action.payload,
@@ -181,12 +186,13 @@ export const exerciseReducer = (state: ExerciseState, action: ExerciseDispatchIn
                 endTime: isPartialReattempt(state.wordData[state.currentWord]) ? getPartialReattemptEndTime(state) : Date.now(),
                 attempts: getNewAttempts(state)
             }
+
             return {
                 ...state,
                 ...action.payload,
                 wordData: newWordData,
                 currentWord: state.currentWord + 1,
-            }
+            };
         }
 
         case (TypingActions.PREVIOUS_WORD): {
@@ -225,9 +231,64 @@ export const exerciseReducer = (state: ExerciseState, action: ExerciseDispatchIn
             }
         }
 
+        case (TypingActions.LAYOUT_SHIFT): {
+            return {
+                ...state,
+                recalculateRows: true
+            }
+        }
+
+        case (TypingActions.LAYOUT_SHIFT_COMPLETED): {
+            return {
+                ...state,
+                recalculateRows: false
+            }
+        }
+
         default:
             return state;
     }
+}
+
+
+export const computeWordRenderMap = (rowStartIndices: number[], rowOffset: number, words: string[]): Record<number, string> => {
+    let wordRenderMapWithHiddenWords: Record<number, string> = {}
+    for (let i = 0; i < words.length; i++) {
+        if (
+            (i >= rowStartIndices[rowOffset] && rowStartIndices.length <= rowOffset + ROW_SPAN) ||
+            (i >= rowStartIndices[rowOffset] && i < rowStartIndices[rowOffset + ROW_SPAN])
+            || rowStartIndices.length < ROW_SPAN + 1
+        ) {
+            wordRenderMapWithHiddenWords[i] = "";
+        } else {
+            wordRenderMapWithHiddenWords[i] = "hidden";
+        }
+    }
+    return wordRenderMapWithHiddenWords;
+}
+
+
+export const computeRowStartIndices = (typingDisplay: React.MutableRefObject<HTMLElement>, state: ExerciseState): number[] => {
+    if(!typingDisplay) {
+        Logger.debug('TypingDisplay is NULL');
+        return [];
+    }
+    const children = typingDisplay.current.children as HTMLCollection;
+    const rowStartIndices: number[] = [0];
+    if (children.length > 0) {
+        let rowHeight = children[0].getBoundingClientRect().top;
+        for (let i = 0; i < children.length; i++) {
+            const child = children[i];
+            if (child.getBoundingClientRect().top !== rowHeight) {
+                rowStartIndices.push(i);
+                rowHeight = child.getBoundingClientRect().top;
+            }
+        }
+    }
+    Logger.log('Row start indices: ', rowStartIndices);
+    const firstWordsOnEachRow = rowStartIndices.map(i => state.words[i]);
+    Logger.log('First words on each row: ', firstWordsOnEachRow);
+    return rowStartIndices;
 }
 
 
@@ -306,7 +367,7 @@ export const typedWord = (state: ExerciseState): string => {
 }
 
 const getDeletedCharacters = (inputValue: string, typedCharArray: string[]): number => {
-    Logger.log(`typedWordvalue: "${typedCharArray.join('')}", inputValue: "${inputValue}"`);
+    // Logger.log(`typedWordvalue: "${typedCharArray.join('')}", inputValue: "${inputValue}"`);
     return inputValue.length < typedCharArray.length ? typedCharArray.length - inputValue.length : 0;
 }
 
@@ -314,7 +375,7 @@ const wordTypedCorrectly = (word: string[], typedWord: string[]): boolean => {
     if (word.length !== typedWord.length) {
         return false;
     }
-    for(let i = 0; i < word.length; i++) {
+    for (let i = 0; i < word.length; i++) {
         if (word[i] !== typedWord[i]) {
             return false;
         }
@@ -377,7 +438,7 @@ const calculateNaiveAccuracy = (totalCharacters: number, correctCharacters: numb
 
 const fillWithSpaces = (state: ExerciseState): string[] => {
     let updatedTypedCharArray = [...state.wordData[state.currentWord].typedCharArray];
-    if (typedWord(state).length < state.wordData[state.currentWord].word.length) { 
+    if (typedWord(state).length < state.wordData[state.currentWord].word.length) {
         let spaces = state.wordData[state.currentWord].wordCharArray
             .slice(typedWord(state).length - state.wordData[state.currentWord].word.length)
             .map((char: string) => ' ');
@@ -388,11 +449,11 @@ const fillWithSpaces = (state: ExerciseState): string[] => {
 
 const getCorrectCharactersInWord = (word: string[], typedWord: string[]): number => {
     let correct = 0;
-    for(let i = 0; i < typedWord.length; i++) {
-        if(i >= word.length) {
+    for (let i = 0; i < typedWord.length; i++) {
+        if (i >= word.length) {
             break;
         }
-        if(typedWord[i] === word[i]) {
+        if (typedWord[i] === word[i]) {
             correct++;
         }
     }
@@ -402,7 +463,7 @@ const getCorrectCharactersInWord = (word: string[], typedWord: string[]): number
 const calculatePerWordWpm = (words: WordData[]): WordData[] => {
     return words.map((word: WordData): WordData => {
         let wpm = null;
-        if(word.startTime && word.endTime) {
+        if (word.startTime && word.endTime) {
             const time = word.endTime - word.startTime;
             if (time < 0) {
                 Logger.error("Per-Word wpm calculation error: negative time!");
@@ -412,7 +473,7 @@ const calculatePerWordWpm = (words: WordData[]): WordData[] => {
             const fractionOfMinute = seconds / 60;
             const wordsTyped = correctCharacters / 5;
             wpm = wordsTyped / fractionOfMinute;
-            console.debug(`wpm for ${word.word}: ${wpm}`);
+            Logger.debug(`wpm for ${word.word}: ${wpm}`);
         } else {
             Logger.error(`Cannot calculate WPM for ${word.word}. Start time: ${word.startTime}, end time: ${word.endTime}`);
         }
@@ -421,4 +482,12 @@ const calculatePerWordWpm = (words: WordData[]): WordData[] => {
             wpm: wpm
         }
     })
+}
+
+export const setAllWordsToRender = (words: string[]): Record<number, string> => {
+    const renderMap: Record<number, string> = {};
+    words.forEach((word: string, index: number) => {
+        renderMap[index] = "";
+    })
+    return renderMap;
 }
