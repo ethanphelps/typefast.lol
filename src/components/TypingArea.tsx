@@ -1,5 +1,5 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { TypingModes } from '../models/models';
+import { TypingMode, TypingModes } from '../models/models';
 import WordComponent from './Word';
 import { ModeState } from '../reducers/mode-reducer';
 import { ExerciseDispatchInput, ExerciseState, ExerciseStatus, TypingActions, WordData, computeRowStartIndices, computeWordRenderMap, setAllWordsToRender, typedWord } from '../reducers/exercise-reducer';
@@ -9,7 +9,7 @@ const deleteInputTypes = ['deleteContentBackward', 'deleteWordBackward', 'delete
 export const ROW_SPAN = 3;
 const TYPING_AREA_MIN_HEIGHT = 76;
 const BUFFER = 5;
-
+const WORD_RETRIEVAL_THRESHOLD = 4;
 
 
 interface TypingAreaProps {
@@ -67,6 +67,14 @@ export const TypingArea = ({
     Logger.debug(`rowOffset: ${rowOffset}`);
     if(!lastTwoRows(rowStartIndices, state.currentWord, rowOffset) && middleRowComplete(rowStartIndices, state.currentWord, rowOffset)) {
         setRowOffset(rowOffset + 1);
+    }
+
+    if(shouldGetMoreWords(modeState.mode, state, rowStartIndices)) {
+        dispatch({
+            type: TypingActions.GET_MORE_WORDS,
+            payload: { modeState: modeState }
+        });
+        dispatch({ type: TypingActions.LAYOUT_SHIFT });
     }
 
     let wordRenderMap: Record<number, string> = null;
@@ -254,6 +262,22 @@ export const TypingArea = ({
 }
 
 /**
+ * Returns true for generating more words if we're in a mode that needs incremental word generation and
+ * the current word index is within the last number of rows considered the threshold (should be last four)
+ */
+const shouldGetMoreWords = (mode: TypingMode, state: ExerciseState, rowStartIndices: number[]): boolean => {
+    Logger.debug(`Index at which to get more words: ${rowStartIndices?.[rowStartIndices.length - WORD_RETRIEVAL_THRESHOLD]}`);
+    if(
+        mode === TypingModes.TIMED && 
+        rowStartIndices !== null &&
+        state.currentWord >= rowStartIndices[rowStartIndices.length - WORD_RETRIEVAL_THRESHOLD]
+    ) {
+        return true;
+    }
+    return false;
+}
+
+/**
  * Want to dispatch LAYOUT_SHIFT when deleting extra characters since this could cause previously displaced words to come
  * back to the bottom visible row
  */
@@ -323,13 +347,13 @@ const shouldMoveToNextWord = (typedWord: string, keyPressed: string): boolean =>
 }
 
 
-export const getWordDataList = (selectedWords: string[]): WordData[] => {
+export const getWordDataList = (selectedWords: string[], indexOffset: number = 0): WordData[] => {
     if (!selectedWords) {
         return [];
     }
     const data: WordData[] = selectedWords.map((word: string, index: number) => {
         return {
-            id: index,
+            id: index + indexOffset,
             word: word,
             wordCharArray: word.split(''),
             typedCharArray: [],
