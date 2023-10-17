@@ -3,7 +3,10 @@
 import { ObjectValues, TypingMode, TypingModes } from "../models/models";
 import { ModeState } from "./mode-reducer";
 import * as Logger from "../utils/logger";
-import { ROW_SPAN } from "../components/TypingArea";
+import { ROW_SPAN, getWordDataList } from "../components/TypingArea";
+import * as WordsService from '../services/words/words-service';
+
+const INCREMENTAL_WORD_GENERATION_COUNT = 50;
 
 export interface WordData {
     id: number;
@@ -30,7 +33,7 @@ export const TypingActions = {
     EXERCISE_COMPLETE: 'exercise-complete',
     LAYOUT_SHIFT: 'layout-shift',
     LAYOUT_SHIFT_COMPLETED: 'layout-shift-completed',
-
+    GET_MORE_WORDS: 'get-more-words'
 } as const;
 type TypingAction = ObjectValues<typeof TypingActions>;
 // this may cause issues polluting state with non state fields in the reducer
@@ -239,9 +242,22 @@ export const exerciseReducer = (state: ExerciseState, action: ExerciseDispatchIn
         }
 
         case (TypingActions.LAYOUT_SHIFT_COMPLETED): {
+            Logger.debug('LAYOUT_SHIFT_COMPLETED');
+            Logger.debug(state);
             return {
                 ...state,
                 recalculateRows: false
+            }
+        }
+
+        case (TypingActions.GET_MORE_WORDS): {
+            Logger.debug("GETTING MORE WORDS");
+            const additionalWords = WordsService.getRandomWords(action.payload.modeState.wordsSource, INCREMENTAL_WORD_GENERATION_COUNT);
+            Logger.debug("Additional words: ", additionalWords);
+            return {
+                ...state,
+                words: [ ...state.words, ...additionalWords ],
+                wordData: [ ...state.wordData, ...getWordDataList(additionalWords, state.words.length)]
             }
         }
 
@@ -336,10 +352,13 @@ export const getMistypedWords = (wordData: WordData[]): MissedWords => {
 
 
 // TODO: also append final word attempt to attempts if not getting added properly
-const getFinalWordData = (state: ExerciseState, mode: TypingMode): WordData[] => {
+export const getFinalWordData = (state: ExerciseState, mode: TypingMode): WordData[] => {
     let finalWordData = [...state.wordData];
     if (mode === TypingModes.TIMED) {
-        return state.wordData.slice(0, state.currentWord); // TODO: see how to handle timer ending when last letter of last word typed correctly but no space pressed (should count as correct)
+        finalWordData[state.currentWord].endTime = Date.now();
+        return wordTypedCorrectly(finalWordData[state.currentWord].wordCharArray, finalWordData[state.currentWord].typedCharArray) 
+            ? finalWordData.slice(0, state.currentWord + 1) 
+            : finalWordData.slice(0, state.currentWord)
     }
     finalWordData[finalWordData.length - 1].endTime = Date.now(); // prevent wpm of last word from being Infinity
     return finalWordData;

@@ -1,10 +1,12 @@
 import { QuotesCollection } from './words.interface';
 import Words from './basic-words.json';
-import { TypingModes } from '../../models/models';
+import { TypingModes, WordsSourceLabelValue } from '../../models/models';
 import { ModeState } from '../../reducers/mode-reducer';
 import _quotes from './quotes/english.json';
 const Quotes = _quotes as QuotesCollection;
 import * as Logger from '../../utils/logger';
+
+const TIMED_MODE_INITIAL_WORD_COUNT = 75;
 
 /**
  * Service for getting words from a source. Randomized words are stored as internal state and can 
@@ -14,16 +16,13 @@ import * as Logger from '../../utils/logger';
  * calls on every render.
  * 
  * TODO: add way to store source of quote for display during quotes mode 
- * 
- * TODO: convert to separate standalone functions instead of being a class
  */
 
-const getRandomWords = (state: ModeState): string[] => {
-    Logger.log('ModeState inside wordsService: ', state)
-    Logger.debug(`Getting ${state.wordCount} random words from ${state.wordsSource}.`)
+export const getRandomWords = (source: WordsSourceLabelValue, count: number): string[] => {
+    Logger.debug(`Getting ${count} random words from ${source}.`)
     let result: string[] = [];
-    const words = Words[state.wordsSource];
-    for (let i = 0; i < state.wordCount; i++) {
+    const words = Words[source];
+    for (let i = 0; i < count; i++) {
         const index = Math.floor(Math.random() * words.length);
         result.push(words[index]);
     }
@@ -37,22 +36,21 @@ const getQuote = (state: ModeState, setQuoteCitation: React.Dispatch<React.SetSt
     Logger.debug(`Random index: ${randomIndex}`);
     const quoteId = Quotes['sections'][state.quotesLength][randomIndex];
     const quote = Quotes['quotes'][quoteId];
-    // dispatch({
-    //     type: TypingActions.QUOTE_SET,
-    //     payload: {
-    //         quoteCitation: quote.source
-    //     }
-    // })
     setQuoteCitation(quote.source);
     const quoteWordArray = quote.text.split(' ');
     Logger.debug('QUOTE: ', quoteWordArray);
     return quoteWordArray;
 }
 
-// export const getWords = (state: ModeState, dispatch: React.Dispatch<React.ReducerAction<React.Reducer<ExerciseState, ExerciseDispatchInput>>>): string[] => {
+/**
+ * TODO: extract conditional logic from here and into Landing component. It's out of scope of the words service
+ */
 export const getWords = (state: ModeState, setQuoteCitation: React.Dispatch<React.SetStateAction<string>>): string[] => {
-    if(state.mode === TypingModes.FIXED || state.mode === TypingModes.TIMED || state.mode === TypingModes.FREEFORM) {
-        return getRandomWords(state);
+    Logger.log('ModeState inside wordsService: ', state);
+    if(state.mode === TypingModes.FIXED || state.mode === TypingModes.FREEFORM) {
+        return getRandomWords(state.wordsSource, state.wordCount);
+    } else if(state.mode === TypingModes.TIMED) {
+        return getRandomWords(state.wordsSource, TIMED_MODE_INITIAL_WORD_COUNT);
     } else if(state.mode === TypingModes.QUOTES) {
         return getQuote(state, setQuoteCitation);
     }

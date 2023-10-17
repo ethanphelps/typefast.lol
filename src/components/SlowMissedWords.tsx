@@ -37,7 +37,7 @@ const sortMistypedWords = (words: MissedWords): [string, number][] => {
 // figure out what stats to use to calculate this - maybe only words a certain number of standard deviations from the mean wpm 
 const getSlowWords = (state: ExerciseState): [string, number][] => {
     const SLOW_THRESHOLD = 0.15;
-    const slowCount = Math.ceil(state.words.length * SLOW_THRESHOLD);
+    const slowCount = Math.ceil(state.wordData.length * SLOW_THRESHOLD);
     const sortedWords = [...state.wordData].sort((a, b) => a.wpm - b.wpm);
     
     const slowWords: Record<string, number> = {};
@@ -84,7 +84,7 @@ const SlowMissedWords = ({ exerciseState }: { exerciseState: ExerciseState }): R
             </section>
             <section id="slow-words" className="typefast-card words-list">
                 <div>
-                    <h3>slow words</h3>
+                    <h3>slowest words</h3>
                 </div>
                 <div>
                     <div className="horizontal-divider"></div>
