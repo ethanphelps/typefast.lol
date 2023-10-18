@@ -132,13 +132,15 @@ export const exerciseReducer = (state: ExerciseState, action: ExerciseDispatchIn
             const inputValue = action.payload.inputValue;
             const characterTyped = inputValue[inputValue.length - 1]; // this may need to change
             let newWordData;
-            let targetWord = state.wordData[state.currentWord].wordCharArray;
-            let typedWord = state.wordData[state.currentWord].typedCharArray;
-            if (characterTyped !== " ") {
-                newWordData = [...state.wordData];
-                newWordData[state.currentWord].typedCharArray.push(characterTyped);
-                if (!wordIncrementallyCorrect(targetWord, typedWord)) {
-                    newWordData[state.currentWord].mistyped = true;
+            if(mode !== TypingModes.FREEFORM) {
+                let targetWord = state.wordData[state.currentWord].wordCharArray;
+                let typedWord = state.wordData[state.currentWord].typedCharArray;
+                if (characterTyped !== " ") {
+                    newWordData = [...state.wordData];
+                    newWordData[state.currentWord].typedCharArray.push(characterTyped);
+                    if (!wordIncrementallyCorrect(targetWord, typedWord)) {
+                        newWordData[state.currentWord].mistyped = true;
+                    }
                 }
             }
             return {

@@ -63,8 +63,6 @@ export const TypingArea = ({
         Logger.debug('typingDisplay during useLayoutEffect: ', typingDisplay.current?.clientHeight);
     })
 
-    Logger.debug('typingDisplay during render: ', typingDisplay.current?.clientHeight);
-    Logger.debug(`rowOffset: ${rowOffset}`);
     if(!lastTwoRows(rowStartIndices, state.currentWord, rowOffset) && middleRowComplete(rowStartIndices, state.currentWord, rowOffset)) {
         setRowOffset(rowOffset + 1);
     }
@@ -266,7 +264,6 @@ export const TypingArea = ({
  * the current word index is within the last number of rows considered the threshold (should be last four)
  */
 const shouldGetMoreWords = (mode: TypingMode, state: ExerciseState, rowStartIndices: number[]): boolean => {
-    Logger.debug(`Index at which to get more words: ${rowStartIndices?.[rowStartIndices.length - WORD_RETRIEVAL_THRESHOLD]}`);
     if(
         mode === TypingModes.TIMED && 
         rowStartIndices !== null &&
@@ -293,7 +290,6 @@ const middleRowComplete = (rowStartIndices: number[], currentWord: number, rowOf
  * Returns true if on last two rows and they're both in view or if total number of rows <= 3
  */
 const lastTwoRows = (rowStartIndices: number[], currentWord: number, rowOffset: number): boolean => {
-    Logger.debug(`lastTwoRows - rowStartIndices: ${JSON.stringify(rowStartIndices)}, currentWord: ${currentWord}`);
     if(!rowStartIndices || rowStartIndices.length <= 3) {
         return true;
     }

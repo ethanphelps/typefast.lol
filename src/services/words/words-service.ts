@@ -47,7 +47,7 @@ const getQuote = (state: ModeState, setQuoteCitation: React.Dispatch<React.SetSt
  */
 export const getWords = (state: ModeState, setQuoteCitation: React.Dispatch<React.SetStateAction<string>>): string[] => {
     Logger.log('ModeState inside wordsService: ', state);
-    if(state.mode === TypingModes.FIXED || state.mode === TypingModes.FREEFORM) {
+    if(state.mode === TypingModes.FIXED) {
         return getRandomWords(state.wordsSource, state.wordCount);
     } else if(state.mode === TypingModes.TIMED) {
         return getRandomWords(state.wordsSource, TIMED_MODE_INITIAL_WORD_COUNT);
