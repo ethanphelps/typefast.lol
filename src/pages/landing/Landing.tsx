@@ -6,6 +6,7 @@ import { MODE_STATE, ModeActions, ModeState, initialModeState, modeOptionsReduce
 import { ExerciseState, ExerciseStatus, ExerciseStatusValue, MissedWords, TypingActions, exerciseReducer, getMistypedWords, setAllWordsToRender } from '../../reducers/exercise-reducer';
 import Stats from '../../components/Stats';
 import SlowMissedWords from '../../components/SlowMissedWords';
+import { ProgressIndicator } from '../../components/ProgressIndicator';
 import { OptionCategories, TypingModes } from '../../models/models';
 import * as WordsService from '../../services/words/words-service';
 import * as Logger from '../../utils/logger';
@@ -196,6 +197,16 @@ export const Landing = (): React.ReactElement => {
                                     dispatch={modeDispatch}
                                     dispatchNewWords={dispatchNewWords}
                                     // dispatchNewWords={() => {}}
+                                />
+                                : <></>
+                            }
+                            {
+                                state.status === ExerciseStatus.IN_PROGRESS ?
+                                <ProgressIndicator 
+                                    mode={modeState.mode} 
+                                    currentWord={state.currentWord} 
+                                    totalWords={state.words.length}
+                                    duration={modeState.duration}
                                 />
                                 : <></>
                             }

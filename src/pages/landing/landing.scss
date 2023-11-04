@@ -485,3 +485,28 @@ body {
   right: 1rem;
   top: 1rem;
 }
+
+// --- Collapsed Mode Menu --- //
+
+
+// --- Progress Indicator --- //
+
+#progress-indicator-container {
+  position: absolute;
+  // top: 0;
+  bottom: 4rem;
+  left: 0;
+  width: 100%;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.progress-indicator {
+  font-size: 2rem;
+  font-weight: 600;
+  color: colors.$accent-color;
+}
+
+// --- Progress Indicator --- //
