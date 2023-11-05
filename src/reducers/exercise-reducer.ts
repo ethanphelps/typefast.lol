@@ -227,6 +227,7 @@ export const exerciseReducer = (state: ExerciseState, action: ExerciseDispatchIn
                 ...action.payload,
                 status: ExerciseStatus.COMPLETE,
                 wordData: finalWordData,
+                words: state.words.slice(0, finalWordData.length),
                 wpm: wpm,
                 accuracy: accuracy,
                 endTime: Date.now(),

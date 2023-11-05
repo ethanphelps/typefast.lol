@@ -153,10 +153,18 @@ body {
   min-width: 900px;
   // min-width: 100%;
   // max-width: 100%;
+  position: relative;
 }
 
 #typing-display {
   min-height: 76px; // TODO see if there's a better way of doing this
+}
+
+#copy-text-container {
+  position: absolute;
+  right: 0.4rem;
+  top: 0.4rem;
+  scale: 90%;
 }
 
 .hidden {
@@ -275,6 +283,7 @@ body {
   width: 100%;
   border-bottom-left-radius: 0.4rem;
   border-bottom-right-radius: 0.4rem;
+  z-index: 1;
 }
 
 .select-options.closed {
