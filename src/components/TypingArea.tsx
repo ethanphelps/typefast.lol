@@ -11,7 +11,7 @@ import { Tooltip } from './Tooltip';
 const deleteInputTypes: Set<String> = new Set(['deleteContentBackward', 'deleteWordBackward', 'deleteSoftLineBackward', 'deleteHardLineBackward']);
 export const ROW_SPAN = 3;
 const TYPING_AREA_MIN_HEIGHT = 76;
-const BUFFER = 5;
+const BUFFER = 3;
 const WORD_RETRIEVAL_THRESHOLD = 4;
 
 
@@ -31,6 +31,8 @@ export const TypingArea = ({
 
     const [rowOffset, setRowOffset] = useState<number>(0);
     const [rowStartIndices, setRowStartIndices] = useState<number[]>(null);
+    const [typingAreaHeight, setTypingAreaHeight] = useState<number>(100);
+    const [initialHeightSet, setInitialHeightSet] = useState<boolean>(false);
 
     if(state.status === ExerciseStatus.READY && rowOffset > 0) {
         setRowOffset(0);
@@ -45,13 +47,15 @@ export const TypingArea = ({
      */
     useLayoutEffect(() => {
         const currentHeight = typingDisplay.current?.clientHeight;
+        Logger.log(`Current height: ${typingDisplay.current?.clientHeight}. Threshold height: ${typingAreaHeight}`);
         if(
             !state.recalculateRows && 
-            Math.floor(currentHeight) > Math.floor(TYPING_AREA_MIN_HEIGHT) + BUFFER && 
+            Math.floor(currentHeight) > Math.floor(typingAreaHeight) + BUFFER && 
             (state.status === ExerciseStatus.READY || state.status === ExerciseStatus.IN_PROGRESS)
         ) {
             Logger.debug(`Layout shift has occurred! current height: ${currentHeight}, desired height: ${TYPING_AREA_MIN_HEIGHT}`);
             dispatch({ type: TypingActions.LAYOUT_SHIFT });
+            setInitialHeightSet(false);
         }
         if(state.recalculateRows) {
             const newRowStartIndices = computeRowStartIndices(typingDisplay, state);
@@ -62,6 +66,11 @@ export const TypingArea = ({
                 setRowStartIndices(newRowStartIndices);
             }
             dispatch({ type: TypingActions.LAYOUT_SHIFT_COMPLETED });
+        }
+        if(!state.recalculateRows && !initialHeightSet) {
+            setTypingAreaHeight(typingDisplay.current?.clientHeight);
+            setInitialHeightSet(true);
+            Logger.debug(`Typing area height after layout shift: ${typingDisplay.current.clientHeight}`);
         }
         Logger.debug('typingDisplay during useLayoutEffect: ', typingDisplay.current?.clientHeight);
     })
@@ -236,7 +245,12 @@ export const TypingArea = ({
     return (
         <div className="typing-container typefast-card">
 
-            <article id="typing-display" ref={typingDisplay} style={{ minHeight: JSON.stringify(TYPING_AREA_MIN_HEIGHT)}}>
+            <article 
+                id="typing-display" 
+                ref={typingDisplay} 
+                style={{ minHeight: JSON.stringify(TYPING_AREA_MIN_HEIGHT)}} 
+                className={ state.status === ExerciseStatus.COMPLETE ? "typing-summary" : ""}
+            >
                 {
                     state.wordData
                         ? state.wordData
