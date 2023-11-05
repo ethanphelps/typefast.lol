@@ -4,6 +4,9 @@ import WordComponent from './Word';
 import { ModeState } from '../reducers/mode-reducer';
 import { ExerciseDispatchInput, ExerciseState, ExerciseStatus, TypingActions, WordData, computeRowStartIndices, computeWordRenderMap, setAllWordsToRender, typedWord } from '../reducers/exercise-reducer';
 import * as Logger from "../utils/logger";
+import { IconButton } from './IconButton';
+import { CopyText } from '../inline-svgs';
+import { Tooltip } from './Tooltip';
 
 const deleteInputTypes: Set<String> = new Set(['deleteContentBackward', 'deleteWordBackward', 'deleteSoftLineBackward', 'deleteHardLineBackward']);
 export const ROW_SPAN = 3;
@@ -220,6 +223,15 @@ export const TypingArea = ({
         }
     }
 
+    const copyExerciseText = async (): Promise<void> => {
+        try {
+            const text = state.words.join(' ');
+            await navigator.clipboard.writeText(text);
+        } catch(e) {
+            Logger.error(`Failed to copy exercise text.`, e);
+        }
+    }
+
 
     return (
         <div className="typing-container typefast-card">
@@ -242,6 +254,15 @@ export const TypingArea = ({
                 }
             </article>
 
+            { state.status === ExerciseStatus.COMPLETE ? 
+                <div id="copy-text-container">
+                    <Tooltip text="copy">
+                        <IconButton image={<CopyText/>} onClick={copyExerciseText}/>
+                    </Tooltip>
+                </div>
+                : <></>
+            }
+
             <input
                 id="invisible-input"
                 type="text"
@@ -262,6 +283,7 @@ export const TypingArea = ({
         </div>
     );
 }
+
 
 /**
  * Returns true for generating more words if we're in a mode that needs incremental word generation and
