@@ -4,6 +4,7 @@ import { ModeState } from '../reducers/mode-reducer';
 import { NextExercise, RedoExercise, PracticeMissedSlowWords, SaveToDifficultExercises } from '../inline-svgs';
 import { IconButton } from './IconButton';
 import { TypingModes } from '../models/models';
+import { Tooltip } from './Tooltip';
 
 interface ExerciseType {
     size: string;
@@ -86,10 +87,18 @@ const Stats = ({ exerciseState, modeState, nextExercise, retryExercise, practice
                 </div>
             </div>
             <div id="summary-buttons-container">
-                <IconButton image={<NextExercise />} onClick={nextExercise} />
-                <IconButton image={<RedoExercise />} onClick={retryExercise} />
-                <IconButton image={<PracticeMissedSlowWords />} onClick={practiceMissedWords} />
-                <IconButton image={<SaveToDifficultExercises />} />
+                <Tooltip text='next exercise'>
+                    <IconButton image={<NextExercise />} onClick={nextExercise} />
+                </Tooltip>
+                <Tooltip text='redo exercise'>
+                    <IconButton image={<RedoExercise />} onClick={retryExercise} />
+                </Tooltip>
+                <Tooltip text='practice missed words'>
+                    <IconButton image={<PracticeMissedSlowWords />} onClick={practiceMissedWords} />
+                </Tooltip>
+                <Tooltip text='save to difficult exercises'>
+                    <IconButton image={<SaveToDifficultExercises />} />
+                </Tooltip>
             </div>
         </section>
     );

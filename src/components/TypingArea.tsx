@@ -5,7 +5,7 @@ import { ModeState } from '../reducers/mode-reducer';
 import { ExerciseDispatchInput, ExerciseState, ExerciseStatus, TypingActions, WordData, computeRowStartIndices, computeWordRenderMap, setAllWordsToRender, typedWord } from '../reducers/exercise-reducer';
 import * as Logger from "../utils/logger";
 
-const deleteInputTypes = ['deleteContentBackward', 'deleteWordBackward', 'deleteSoftLineBackward', 'deleteHardLineBackward'];
+const deleteInputTypes: Set<String> = new Set(['deleteContentBackward', 'deleteWordBackward', 'deleteSoftLineBackward', 'deleteHardLineBackward']);
 export const ROW_SPAN = 3;
 const TYPING_AREA_MIN_HEIGHT = 76;
 const BUFFER = 5;
@@ -137,7 +137,7 @@ export const TypingArea = ({
 
 
     const isDeleteInputType = (event: InputEvent): boolean => {
-        return deleteInputTypes.includes(event.inputType);
+        return deleteInputTypes.has(event.inputType);
     }
 
     const isDelete = (event: React.ChangeEvent, inputValue: string): boolean => {
@@ -255,6 +255,8 @@ export const TypingArea = ({
                 data-gramm_editor='false'
                 data-enable-grammarly='false'
                 spellCheck='false'
+                onPaste={(e) => e.preventDefault()}
+                onDrop={(e) => e.preventDefault()}
             >
             </input>
         </div>

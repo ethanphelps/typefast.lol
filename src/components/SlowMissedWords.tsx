@@ -3,6 +3,7 @@ import { ExerciseState, MissedWords, WordData, getMistypedWords } from '../reduc
 import { IconButton } from './IconButton';
 import { AddItem } from '../inline-svgs';
 import * as Logger from "../utils/logger";
+import { Tooltip } from './Tooltip';
 
 
 const WordListItem = ({ word, onClick, count, wpm }: { word: string, onClick: React.MouseEventHandler, count?: number, wpm?: number }) => {
@@ -21,7 +22,9 @@ const WordListItem = ({ word, onClick, count, wpm }: { word: string, onClick: Re
                         : <></>
                 }
             </div>
-            <IconButton image={<AddItem />} onClick={onClick}/>
+            <Tooltip text="add to difficult words">
+                <IconButton image={<AddItem />} onClick={onClick}/>
+            </Tooltip>
         </li>
     );
 }
