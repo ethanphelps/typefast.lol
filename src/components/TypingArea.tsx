@@ -252,8 +252,23 @@ export const TypingArea = ({
                 className={ state.status === ExerciseStatus.COMPLETE ? "typing-summary" : ""}
             >
                 {
-                    state.wordData
+                    state.wordData && (state.status === ExerciseStatus.READY || state.status === ExerciseStatus.IN_PROGRESS)
                         ? state.wordData
+                            .map((data: WordData, index: number) => {
+                                return <WordComponent
+                                    word={data.wordCharArray}
+                                    typedWord={data.typedCharArray}
+                                    wordIndex={data.id}
+                                    currentWord={state.currentWord}
+                                    renderClass={wordRenderMap[index]}
+                                    key={data.id}
+                                />
+                            })
+                        : null
+                }
+                {
+                    state.finalWordData && state.status === ExerciseStatus.COMPLETE
+                        ? state.finalWordData
                             .map((data: WordData, index: number) => {
                                 return <WordComponent
                                     word={data.wordCharArray}

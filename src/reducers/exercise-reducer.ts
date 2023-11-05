@@ -74,6 +74,8 @@ export interface ExerciseState {
     timeoutId?: NodeJS.Timeout;
     quoteCitation: string;
     recalculateRows: boolean;
+    finalWords: string[];
+    finalWordData: WordData[];
 }
 
 /**
@@ -98,7 +100,9 @@ export const exerciseReducer = (state: ExerciseState, action: ExerciseDispatchIn
                 startTime: null,
                 endTime: null,
                 canType: true,
-                recalculateRows: true
+                recalculateRows: true,
+                finalWords: [],
+                finalWordData: []
             }
 
         case (TypingActions.QUOTE_SET):
@@ -226,8 +230,8 @@ export const exerciseReducer = (state: ExerciseState, action: ExerciseDispatchIn
                 ...state,
                 ...action.payload,
                 status: ExerciseStatus.COMPLETE,
-                wordData: finalWordData,
-                words: state.words.slice(0, finalWordData.length),
+                finalWordData: finalWordData,
+                finalWords: state.words.slice(0, finalWordData.length),
                 wpm: wpm,
                 accuracy: accuracy,
                 endTime: Date.now(),

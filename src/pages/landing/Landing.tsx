@@ -71,7 +71,9 @@ export const Landing = (): React.ReactElement => {
                 wpm: null,
                 accuracy: null,
                 quoteCitation: "",
-                recalculateRows: true
+                recalculateRows: true,
+                finalWords: [],
+                finalWordData: []
             }
         }
     )

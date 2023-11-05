@@ -40,8 +40,8 @@ const sortMistypedWords = (words: MissedWords): [string, number][] => {
 // figure out what stats to use to calculate this - maybe only words a certain number of standard deviations from the mean wpm 
 const getSlowWords = (state: ExerciseState): [string, number][] => {
     const SLOW_THRESHOLD = 0.15;
-    const slowCount = Math.ceil(state.wordData.length * SLOW_THRESHOLD);
-    const sortedWords = [...state.wordData].sort((a, b) => a.wpm - b.wpm);
+    const slowCount = Math.ceil(state.finalWordData.length * SLOW_THRESHOLD);
+    const sortedWords = [...state.finalWordData].sort((a, b) => a.wpm - b.wpm);
     
     const slowWords: Record<string, number> = {};
     sortedWords.slice(0, slowCount).forEach((word: WordData) => {
@@ -63,7 +63,7 @@ const getSlowWords = (state: ExerciseState): [string, number][] => {
  * create a component for each row
  */
 const SlowMissedWords = ({ exerciseState }: { exerciseState: ExerciseState }): React.ReactElement => {
-    const mistypedWords = sortMistypedWords(getMistypedWords(exerciseState.wordData));
+    const mistypedWords = sortMistypedWords(getMistypedWords(exerciseState.finalWordData));
     const slowWords = getSlowWords(exerciseState);
     const wordListItemClicked = (event: React.MouseEvent) => {
         Logger.log("word list item clicked!!!");
