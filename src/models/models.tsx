@@ -237,7 +237,7 @@ export const CollapsedModeOptions: Record<TypingMode, OptionCategory[]> = {
     [TypingModes.PRACTICE]: [OptionCategories.PRACTICE_FORMAT, OptionCategories.PRACTICE_SOURCE],
 };
 
-export const DurationModes: TypingMode[] = [TypingModes.FIXED, TypingModes.TIMED, TypingModes.QUOTES];
+export const DurationModes: Set<TypingMode> = new Set([TypingModes.FIXED, TypingModes.TIMED, TypingModes.QUOTES]);
 export const DurationModeToDurationCategory: Record<TypingMode, OptionCategory> = {
     [TypingModes.FIXED]: OptionCategories.COUNT,
     [TypingModes.TIMED]: OptionCategories.DURATION,
@@ -254,7 +254,7 @@ export const TypingModeToSourceCategory: Record<TypingMode, OptionCategory> = {
     [TypingModes.PRACTICE]: OptionCategories.WORDS_SOURCE
 }
 
-export const RandomTextModes: TypingMode[] = [TypingModes.FIXED, TypingModes.TIMED, TypingModes.PRACTICE];
+export const RandomTextModes: Set<TypingMode> = new Set([TypingModes.FIXED, TypingModes.TIMED, TypingModes.PRACTICE]);
 
 
 /**

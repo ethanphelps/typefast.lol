@@ -182,7 +182,7 @@ const ModeMenuCollapsed = ({ state, dispatch, setExpanded }: ModeMenuProps): Rea
             </div>
             <div className="vertical-divider"></div>
             {
-                DurationModes.includes(state.mode) ?
+                DurationModes.has(state.mode) ?
                     <>
                         <ModeOptionRow 
                             category={DurationModeToDurationCategory[state.mode]} // map mode to duration/count/length/nothing
@@ -195,7 +195,7 @@ const ModeMenuCollapsed = ({ state, dispatch, setExpanded }: ModeMenuProps): Rea
                     : <></>
             }
             {
-                RandomTextModes.includes(state.mode) ?
+                RandomTextModes.has(state.mode) ?
                     <>
                         {
                             ToggleCategories.map((category: ToggleCategory, index: number) => 

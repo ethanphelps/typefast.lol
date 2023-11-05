@@ -510,3 +510,68 @@ body {
 }
 
 // --- Progress Indicator --- //
+
+// --- Tooltips --- //
+
+.tooltip-container {
+  position: relative;
+  display: flex;
+}
+
+.tooltip {
+  position: absolute;
+  top: calc(-100% - 15px);
+  left: 50%;
+  transform: translateX(-50%); 
+  background-color: colors.$accent-color;
+  font-size: 0.8rem;
+  // padding: 4px 8px 4px 8px;
+  padding: 0px 8px 0px 8px;
+  // border-radius: 0.7rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  z-index: 1;
+  justify-content: center;
+  width: max-content;
+  pointer-events: none;
+}
+
+.tooltip::after {
+  --arrow-size: 10px;
+  --translate-y: calc(3 * var(--arrow-size) - 5px);
+
+  position: absolute;
+  content: '';
+  border: var(--arrow-size) solid transparent;
+  border-top-color: colors.$accent-color;
+  left: 50%;
+  transform-origin: bottom center;
+  transform: translateX(-50%) translateY(var(--translate-y));
+  pointer-events: none;
+}
+.tooltip, .tooltip::after {
+  animation: appear 0.15s ease-in-out;
+}
+.tooltip.hide, .tooltip.hide::after {
+  animation: disappear 0.15s ease-in-out;
+}
+
+@keyframes appear  {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes disappear  {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+
+// --- Tooltips --- //
