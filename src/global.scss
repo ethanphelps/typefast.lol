@@ -17,6 +17,59 @@
   // src: url('../public/Mono-Sans.ttf');
 }
 
+@font-face {
+  font-family: "Geist Medium";
+  src: url('../public/geist/Geist-Medium.woff2');
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Geist Regular";
+  src: url('../public/geist/Geist-Regular.woff2');
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Geist Light";
+  src: url('../public/geist/Geist-Light.woff2');
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Geist Mono Regular";
+  src: url('../public/geist/GeistMono-Regular.woff2');
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Geist Mono Medium";
+  src: url('../public/geist/GeistMono-Medium.woff2');
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Geist Mono Light";
+  src: url('../public/geist/GeistMono-Light.woff2');
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Geist Mono SemiBold";
+  src: url('../public/geist/GeistMono-SemiBold.woff2');
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Geist Mono Bold";
+  src: url('../public/geist/GeistMono-Bold.woff2');
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Geist Mono Black";
+  src: url('../public/geist/GeistMono-Black.woff2');
+  font-style: normal;
+}
 
 * {
   padding: 0;
@@ -38,6 +91,14 @@ body {
   // font-family: 'Source Code Pro', monospace;
 
   // font-family: 'Mona Sans', monospace;
+  // font-family: 'Geist Regular',  sans-serif;
+  // font-family: 'Geist Light',  sans-serif;
+  // font-family: 'Geist Mono Regular', monospace;
+  // font-family: 'Geist Mono Medium', monospace;
+  // font-family: 'Geist Mono Light', monospace;
+  // font-family: 'Geist Mono SemiBold', monospace;
+  // font-family: 'Geist Mono Bold', monospace;
+  // font-family: 'Geist Mono Black', monospace;
 
   color: colors.$font-color;
   background-color: colors.$bg-color;

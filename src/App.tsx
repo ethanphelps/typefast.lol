@@ -8,9 +8,6 @@ const App: React.FC = (): React.ReactElement => {
             <Route path="/">
                 <Landing />
             </Route>
-            {/* <Route path="/new">
-                <RecipeForm />
-            </Route> */}
         </>
     );
 };
